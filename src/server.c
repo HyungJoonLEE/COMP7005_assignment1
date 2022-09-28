@@ -127,6 +127,8 @@ static int run(const struct dc_posix_env *env, struct dc_error *err, struct dc_a
     int server_socket, client_socket;
     struct sockaddr_in server_address;
     struct sockaddr_in client_address;
+    socklen_t client_address_size;
+    int option;
 
     DC_TRACE(env);
 
@@ -135,9 +137,6 @@ static int run(const struct dc_posix_env *env, struct dc_error *err, struct dc_a
     directory = dc_setting_string_get(env, app_settings->directory);
     printf("server says \"%d %s\"\n", port, directory);
 
-
-    /* Create an AF_INET stream socket to receive incoming      */
-    /* connections on                                           */
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket == -1)
         fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
@@ -148,9 +147,24 @@ static int run(const struct dc_posix_env *env, struct dc_error *err, struct dc_a
     server_address.sin_port = htons(port);
     server_address.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    if (bind(server_socket, (struct sockaddr *) &server_address, sizeof(server_address)) == -1) {
+    if(server_address.sin_addr.s_addr == (in_addr_t) -1) {
         fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
     }
+
+    option = 1;
+    setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
+
+    if (bind(server_socket, (struct sockaddr *) &server_address, sizeof(server_address)) == -1)
+        fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+
+
+    if(listen(server_socket, 5)==-1)
+        fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+
+    client_address_size = sizeof(client_address);
+    client_socket = accept(server_socket, (struct sockaddr*)&client_address, &client_address_size);
+    if(client_socket == -1) error_handling("accept() error");
+
 
 
 
@@ -170,5 +184,11 @@ static void trace_reporter(__attribute__((unused)) const struct dc_posix_env *en
                            size_t line_number)
 {
     fprintf(stdout, "TRACE: %s : %s : @ %zu\n", file_name, function_name, line_number);
+}
+
+void error_handling(char *message)
+{
+    fputs(message, stderr);
+    exit(1);
 }
 

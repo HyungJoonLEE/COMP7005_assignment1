@@ -27,5 +27,6 @@ static void trace_reporter(const struct dc_posix_env *env,
                            const char *function_name,
                            size_t line_number);
 
+void error_handling(char *message);
 
 #endif //ASSIGN1_SERVER_H
