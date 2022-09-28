@@ -12,11 +12,15 @@ set(HEADER_LIST
         "${assignment1_SOURCE_DIR}/include/common.h"
         "${assignment1_SOURCE_DIR}/include/server.h"
         "${assignment1_SOURCE_DIR}/include/error.h"
+        "${assignment1_SOURCE_DIR}/include/conversion.h"
+        "${assignment1_SOURCE_DIR}/include/copy.h"
         )
 
 set(COMMON_SOURCE_LIST
         "${assignment1_SOURCE_DIR}/src/common.c"
         "${assignment1_SOURCE_DIR}/src/error.c"
+        "${assignment1_SOURCE_DIR}/src/conversion.c"
+        "${assignment1_SOURCE_DIR}/src/copy.c"
         )
 
 set(SERVER_SOURCE_LIST

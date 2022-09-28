@@ -1,150 +1,159 @@
-#include <dc_application/command_line.h>
-#include <dc_application/config.h>
-#include <dc_application/defaults.h>
-#include <dc_application/environment.h>
-#include <dc_application/options.h>
-#include <dc_posix/dc_stdlib.h>
-#include <dc_posix/dc_string.h>
-#include <getopt.h>
+#include "conversion.h"
+#include "copy.h"
+#include "error.h"
+#include <arpa/inet.h>
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 
-struct application_settings
+struct options
 {
-    struct dc_opt_settings opts;
-    struct dc_setting_string *message;
+    char *file_name;
+    char *ip_in;
+    char *ip_out;
+    in_port_t port_in;
+    in_port_t port_out;
+    int fd_in;
+    int fd_in2;
+    int fd_out;
 };
 
 
+static void options_init(struct options *opts);
+static void parse_arguments(int argc, char *argv[], struct options *opts);
+static void options_process(struct options *opts);
+static void cleanup(const struct options *opts);
 
-static struct dc_application_settings *create_settings(const struct dc_posix_env *env, struct dc_error *err);
-static int destroy_settings(const struct dc_posix_env *env,
-                            struct dc_error *err,
-                            struct dc_application_settings **psettings);
-static int run(const struct dc_posix_env *env, struct dc_error *err, struct dc_application_settings *settings);
-static void error_reporter(const struct dc_error *err);
-static void trace_reporter(const struct dc_posix_env *env,
-                           const char *file_name,
-                           const char *function_name,
-                           size_t line_number);
 
+#define BUF_SIZE 1024
+#define DEFAULT_PORT 5000
+#define BACKLOG 5
 
 int main(int argc, char *argv[])
 {
-    dc_posix_tracer tracer;
-    dc_error_reporter reporter;
-    struct dc_posix_env env;
-    struct dc_error err;
-    struct dc_application_info *info;
-    int ret_val;
+    struct options opts;
 
-    reporter = error_reporter;
-    tracer = trace_reporter;
-    tracer = NULL;
-    dc_error_init(&err, reporter);
-    dc_posix_env_init(&env, tracer);
-    info = dc_application_info_create(&env, &err, "Settings Application");
-    ret_val = dc_application_run(&env, &err, info, create_settings, destroy_settings, run, dc_default_create_lifecycle, dc_default_destroy_lifecycle, NULL, argc, argv);
-    dc_application_info_destroy(&env, &info);
-    dc_error_reset(&err);
-
-    return ret_val;
-}
-
-static struct dc_application_settings *create_settings(const struct dc_posix_env *env, struct dc_error *err)
-{
-    struct application_settings *settings;
-
-    DC_TRACE(env);
-    settings = dc_malloc(env, err, sizeof(struct application_settings));
-
-    if(settings == NULL)
-    {
-        return NULL;
-    }
-
-    settings->opts.parent.config_path = dc_setting_path_create(env, err);
-    settings->message = dc_setting_string_create(env, err);
-
-    struct options opts[] = {
-            {(struct dc_setting *)settings->opts.parent.config_path,
-                    dc_options_set_path,
-                    "config",
-                    required_argument,
-                    'c',
-                    "CONFIG",
-                    dc_string_from_string,
-                    NULL,
-                    dc_string_from_config,
-                    NULL},
-            {(struct dc_setting *)settings->message,
-                    dc_options_set_string,
-                    "message",
-                    required_argument,
-                    'm',
-                    "MESSAGE",
-                    dc_string_from_string,
-                    "message",
-                    dc_string_from_config,
-                    "Hello, Default World!"},
-    };
-
-    // note the trick here - we use calloc and add 1 to ensure the last line is all 0/NULL
-    settings->opts.opts_count = (sizeof(opts) / sizeof(struct options)) + 1;
-    settings->opts.opts_size = sizeof(struct options);
-    settings->opts.opts = dc_calloc(env, err, settings->opts.opts_count, settings->opts.opts_size);
-    dc_memcpy(env, settings->opts.opts, opts, sizeof(opts));
-    settings->opts.flags = "m:";
-    settings->opts.env_prefix = "DC_EXAMPLE_";
-
-    return (struct dc_application_settings *)settings;
-}
-
-static int destroy_settings(const struct dc_posix_env *env,
-                            __attribute__((unused)) struct dc_error *err,
-                            struct dc_application_settings **psettings)
-{
-    struct application_settings *app_settings;
-
-    DC_TRACE(env);
-    app_settings = (struct application_settings *)*psettings;
-    dc_setting_string_destroy(env, &app_settings->message);
-    dc_free(env, app_settings->opts.opts, app_settings->opts.opts_count);
-    dc_free(env, *psettings, sizeof(struct application_settings));
-
-    if(env->null_free)
-    {
-        *psettings = NULL;
-    }
-
-    return 0;
-}
-
-static int run(const struct dc_posix_env *env, struct dc_error *err, struct dc_application_settings *settings)
-{
-    struct application_settings *app_settings;
-    const char *message;
-
-    DC_TRACE(env);
-
-    app_settings = (struct application_settings *)settings;
-    message = dc_setting_string_get(env, app_settings->message);
-    printf("prog2 says \"%s\"\n", message);
+    options_init(&opts);
+    parse_arguments(argc, argv, &opts);
+    options_process(&opts);
+    copy(opts.fd_in, opts.fd_out, BUF_SIZE);
+    cleanup(&opts);
 
     return EXIT_SUCCESS;
 }
 
-static void error_reporter(const struct dc_error *err)
+
+static void options_init(struct options *opts)
 {
-    fprintf(stderr, "ERROR: %s : %s : @ %zu : %d\n", err->file_name, err->function_name, err->line_number, 0);
-    fprintf(stderr, "ERROR: %s\n", err->message);
+    memset(opts, 0, sizeof(struct options));
+    opts->fd_in    = STDIN_FILENO;
+    opts->fd_out   = STDOUT_FILENO;
+    opts->port_in  = DEFAULT_PORT;
+    opts->port_out = DEFAULT_PORT;
 }
 
-static void trace_reporter(__attribute__((unused)) const struct dc_posix_env *env,
-                           const char *file_name,
-                           const char *function_name,
-                           size_t line_number)
+
+static void parse_arguments(int argc, char *argv[], struct options *opts)
 {
-    fprintf(stdout, "TRACE: %s : %s : @ %zu\n", file_name, function_name, line_number);
+    int c;
+
+    while((c = getopt(argc, argv, ":s:p:")) != -1)   // NOLINT(concurrency-mt-unsafe)
+    {
+        switch(c)
+        {
+            case 's':
+            {
+                opts->ip_out = optarg;
+                break;
+            }
+            case 'p':
+            {
+                opts->port_out = parse_port(optarg, 10); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+                break;
+            }
+            case ':':
+            {
+                fatal_message(__FILE__, __func__ , __LINE__, "\"Option requires an operand\"", 5); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+                break;
+            }
+            case '?':
+            {
+                fatal_message(__FILE__, __func__ , __LINE__, "Unknown", 6); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+            }
+            default:
+            {
+                assert("should not get here");
+            };
+        }
+    }
+
+    if(optind < argc)
+    {
+        opts->file_name = argv[optind];
+    }
+}
+
+
+static void options_process(struct options *opts)
+{
+    if(opts->file_name)
+    {
+        opts->fd_in = open(opts->file_name, O_RDONLY);
+
+        if(opts->fd_in == -1)
+        {
+            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+        }
+    }
+
+
+    if(opts->ip_out)
+    {
+        int result;
+        struct sockaddr_in addr;
+
+        opts->fd_out = socket(AF_INET, SOCK_STREAM, 0);
+
+        if(opts->fd_out == -1)
+        {
+            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+        }
+
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(opts->port_out);
+        addr.sin_addr.s_addr = inet_addr(opts->ip_out);
+
+        if(addr.sin_addr.s_addr ==  (in_addr_t)-1)
+        {
+            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+        }
+
+        result = connect(opts->fd_out, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+
+        if(result == -1)
+        {
+            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+        }
+    }
+}
+
+
+static void cleanup(const struct options *opts)
+{
+    if(opts->ip_in)
+    {
+        close(opts->fd_in);
+        close(opts->fd_in2);
+    }
+
+    if(opts->ip_out)
+    {
+        close(opts->fd_out);
+    }
 }

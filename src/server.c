@@ -1,194 +1,243 @@
-#include <dc_application/command_line.h>
-#include <dc_application/config.h>
-//#include <dc_application/defaults.h>
-//#include <dc_application/environment.h>
-#include <dc_application/options.h>
-#include <dc_posix/dc_stdlib.h>
-#include <dc_posix/dc_string.h>
-#include <dc_posix/dc_inttypes.h>
+#include "conversion.h"
+#include "copy.h"
+#include "error.h"
+#include "server.h"
+#include <arpa/inet.h>
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <netinet/in.h>
-#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "server.h"
-#include "error.h"
+#include <string.h>
+#include <unistd.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <net/if.h>
+#include <netdb.h>
+#include <ifaddrs.h>
+#include <ctype.h>
 
 
+struct options
+{
+    char *file_name;
+    char *ip_in;
+    char *ip_out;
+    in_port_t port_in;
+    in_port_t port_out;
+    int fd_in;
+    int fd_in2;
+    int fd_out;
+};
+
+
+static void options_init(struct options *opts);
+static void parse_arguments(int argc, char *argv[], struct options *opts);
+static void options_process(struct options *opts);
+static void cleanup(const struct options *opts);
+
+
+#define BUF_SIZE 1024
+#define DEFAULT_PORT 5000
+#define BACKLOG 5
 
 int main(int argc, char *argv[])
 {
-    dc_posix_tracer tracer;
-    dc_error_reporter reporter;
-    struct dc_posix_env env;
-    struct dc_error err;
-    struct dc_application_info *info;
-    int ret_val;
+    struct options opts;
 
-    reporter = dc_error_default_error_reporter;
-    tracer = NULL;
-    dc_error_init(&err, reporter);
-    dc_posix_env_init(&env, tracer);
-    info = dc_application_info_create(&env, &err, "Settings Application");
-    ret_val = dc_application_run(&env, &err, info, create_settings, destroy_settings, run, dc_default_create_lifecycle, dc_default_destroy_lifecycle, NULL, argc, argv);
-    dc_application_info_destroy(&env, &info);
-    dc_error_reset(&err);
-
-    return ret_val;
-}
-
-static struct dc_application_settings *create_settings(const struct dc_posix_env *env, struct dc_error *err)
-{
-    struct application_settings *settings;
-    static const uint16_t default_port = DEFAULT_PORT;
-    static const char* default_directory = DEFAULT_DIRECTORY;
-
-    DC_TRACE(env);
-    settings = dc_malloc(env, err, sizeof(struct application_settings));
-
-    if(settings == NULL)
-    {
-        return NULL;
-    }
-
-    settings->opts.parent.config_path = dc_setting_path_create(env, err);
-    settings->port = dc_setting_uint16_create(env, err);
-    settings->directory = dc_setting_string_create(env, err);
-
-    struct options opts[] = {
-            {(struct dc_setting *)settings->opts.parent.config_path,
-                    dc_options_set_path,
-                    "config",
-                    required_argument,
-                    'c',
-                    "CONFIG",
-                    dc_string_from_string,
-                    NULL,
-                    dc_string_from_config,
-                    NULL},
-            {(struct dc_setting *)settings->directory,
-                    dc_options_set_string,
-                    "directory",
-                    required_argument,
-                    'd',
-                    "DIRECTORY",
-                    dc_string_from_string,
-                    "directory",
-                    dc_string_from_config,
-                    default_directory},
-            {(struct dc_setting *)settings->port,
-                    dc_options_set_uint16,
-                    "port",
-                    required_argument,
-                    'p',
-                    "PORT",
-                    dc_uint16_from_string,
-                    "port",
-                    dc_uint16_from_config,
-                    &default_port},
-    };
-
-    // note the trick here - we use calloc and add 1 to ensure the last line is all 0/NULL
-    settings->opts.opts_count = (sizeof(opts) / sizeof(struct options)) + 1;
-    settings->opts.opts_size = sizeof(struct options);
-    settings->opts.opts = dc_calloc(env, err, settings->opts.opts_count, settings->opts.opts_size);
-    dc_memcpy(env, settings->opts.opts, opts, sizeof(opts));
-    settings->opts.flags = "c:d:p:";
-    settings->opts.env_prefix = "ASSIGN_1_SERVER_";
-
-    return (struct dc_application_settings *)settings;
-}
-
-static int destroy_settings(const struct dc_posix_env *env,
-                            __attribute__((unused)) struct dc_error *err,
-                            struct dc_application_settings **psettings)
-{
-    struct application_settings *app_settings;
-
-    DC_TRACE(env);
-    app_settings = (struct application_settings *)*psettings;
-    dc_setting_uint16_destroy(env, &app_settings->port);
-    dc_setting_string_destroy(env, &app_settings->directory);
-    dc_free(env, app_settings->opts.opts, app_settings->opts.opts_count);
-    dc_free(env, *psettings, sizeof(struct application_settings));
-
-    if(env->null_free)
-    {
-        *psettings = NULL;
-    }
-
-    return 0;
-}
-
-static int run(const struct dc_posix_env *env, struct dc_error *err, struct dc_application_settings *settings)
-{
-    struct application_settings *app_settings;
-    in_port_t port;
-    const char *directory;
-    int server_socket, client_socket;
-    struct sockaddr_in server_address;
-    struct sockaddr_in client_address;
-    socklen_t client_address_size;
-    int option;
-
-    DC_TRACE(env);
-
-    app_settings = (struct application_settings *)settings;
-    port = dc_setting_uint16_get(env, app_settings->port);
-    directory = dc_setting_string_get(env, app_settings->directory);
-    printf("server says \"%d %s\"\n", port, directory);
-
-    server_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_socket == -1)
-        fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
-
-
-    memset(&server_address, 0, sizeof(server_address));
-    server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(port);
-    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    if(server_address.sin_addr.s_addr == (in_addr_t) -1) {
-        fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
-    }
-
-    option = 1;
-    setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
-
-    if (bind(server_socket, (struct sockaddr *) &server_address, sizeof(server_address)) == -1)
-        fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
-
-
-    if(listen(server_socket, 5)==-1)
-        fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
-
-    client_address_size = sizeof(client_address);
-    client_socket = accept(server_socket, (struct sockaddr*)&client_address, &client_address_size);
-    if(client_socket == -1) error_handling("accept() error");
-
-
+    options_init(&opts);
+    parse_arguments(argc, argv, &opts);
+    options_process(&opts);
+    copy(opts.fd_in, opts.fd_out, BUF_SIZE);
+    cleanup(&opts);
 
 
     return EXIT_SUCCESS;
 }
 
 
-static void error_reporter(const struct dc_error *err)
+static void options_init(struct options *opts)
 {
-    fprintf(stderr, "ERROR: %s : %s : @ %zu : %d\n", err->file_name, err->function_name, err->line_number, 0);
-    fprintf(stderr, "ERROR: %s\n", err->message);
+    int fd;
+    struct ifreq ifr;
+
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    ifr.ifr_addr.sa_family = AF_INET;
+    snprintf(ifr.ifr_name, IFNAMSIZ, "en0");
+    ioctl(fd, SIOCGIFADDR, &ifr);
+
+    /* and more importantly */
+    printf("%s\n", inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
+    memset(opts, 0, sizeof(struct options));
+
+    opts->ip_in   = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+    opts->fd_out   = STDOUT_FILENO;
+    opts->port_in  = DEFAULT_PORT;
 }
 
-static void trace_reporter(__attribute__((unused)) const struct dc_posix_env *env,
-                           const char *file_name,
-                           const char *function_name,
-                           size_t line_number)
+
+static void parse_arguments(int argc, char *argv[], struct options *opts)
 {
-    fprintf(stdout, "TRACE: %s : %s : @ %zu\n", file_name, function_name, line_number);
+    int c;
+
+    while((c = getopt(argc, argv, ":i:p:")) != -1)   // NOLINT(concurrency-mt-unsafe)
+    {
+        switch(c)
+        {
+            case 'i':
+            {
+                opts->ip_in = optarg;
+                break;
+            }
+            case 'p':
+            {
+                opts->port_in = parse_port(optarg, 10); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+                break;
+            }
+            case ':':
+            {
+                fatal_message(__FILE__, __func__ , __LINE__, "\"Option requires an operand\"", 5); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+                break;
+            }
+            case '?':
+            {
+                fatal_message(__FILE__, __func__ , __LINE__, "Unknown", 6); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+            }
+            default:
+            {
+                assert("should not get here");
+            };
+        }
+    }
+
+    if(optind < argc)
+    {
+        opts->file_name = argv[optind];
+    }
 }
 
-void error_handling(char *message)
+
+static void options_process(struct options *opts)
 {
-    fputs(message, stderr);
-    exit(1);
+    if(opts->file_name && opts->ip_in)
+    {
+        fatal_message(__FILE__, __func__ , __LINE__, "Can't pass -i and a filename", 2);
+    }
+
+    if(opts->file_name)
+    {
+        opts->fd_in = open(opts->file_name, O_RDONLY);
+
+        if(opts->fd_in == -1)
+        {
+            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+        }
+    }
+
+    if(opts->ip_in)
+    {
+        struct sockaddr_in addr;
+        int result;
+        int option;
+
+        opts->fd_in2 = socket(AF_INET, SOCK_STREAM, 0);
+
+        if(opts->fd_in2 == -1)
+        {
+            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+        }
+
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(opts->port_in);
+        addr.sin_addr.s_addr = inet_addr(opts->ip_in);
+
+        if(addr.sin_addr.s_addr ==  (in_addr_t)-1)
+        {
+            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+        }
+
+        option = 1;
+        setsockopt(opts->fd_in2, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
+
+        result = bind(opts->fd_in2, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+
+        if(result == -1)
+        {
+            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+        }
+
+        result = listen(opts->fd_in2, BACKLOG);
+
+        if(result == -1)
+        {
+            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+        }
+
+        opts->fd_in = accept(opts->fd_in2, NULL, 0);
+
+        if(opts->fd_in == -1)
+        {
+            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+        }
+    }
 }
 
+
+static void cleanup(const struct options *opts)
+{
+    if(opts->file_name)
+    {
+        close(opts->fd_in);
+    }
+    else if(opts->ip_in)
+    {
+        close(opts->fd_in);
+        close(opts->fd_in2);
+    }
+
+    if(opts->ip_out)
+    {
+        close(opts->fd_out);
+    }
+}
+
+
+unsigned int ip_to_int (const char * ip)
+{
+    char c;
+    c = *ip;
+    unsigned int integer;
+    int val;
+    int i,j=0;
+    for (j=0;j<4;j++) {
+        if (!isdigit(c)){  //first char is 0
+            return (0);
+        }
+        val=0;
+        for (i=0;i<3;i++) {
+            if (isdigit(c)) {
+                val = (val * 10) + (c - '0');
+                c = *++ip;
+            } else
+                break;
+        }
+        if(val<0 || val>255){
+            return (0);
+        }
+        if (c == '.') {
+            integer=(integer<<8) | val;
+            c = *++ip;
+        }
+        else if(j==3 && c == '\0'){
+            integer=(integer<<8) | val;
+            break;
+        }
+
+    }
+    if(c != '\0'){
+        return (0);
+    }
+    return (htonl(integer));
+}
