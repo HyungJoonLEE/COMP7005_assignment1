@@ -3,17 +3,18 @@
 cmake_minimum_required(VERSION 3.19)
 
 # Project name and a few useful settings. Other commands can pick up the results
-project(assign1
+project(assignment1
         VERSION 0.1
         DESCRIPTION ""
         LANGUAGES C)
 
 set(HEADER_LIST
-        "${assign1_SOURCE_DIR}/include/common.h"
+        "${assignment1_SOURCE_DIR}/include/common.h"
+        "${assignment1_SOURCE_DIR}/include/server.h"
         )
 
 set(COMMON_SOURCE_LIST
-        "${assign1_SOURCE_DIR}/src/common.c"
+        "${assignment1_SOURCE_DIR}/src/common.c"
         )
 
 set(SERVER_SOURCE_LIST
@@ -23,12 +24,13 @@ set(CLIENT_SOURCE_LIST
         )
 
 set(SERVER_MAIN_SOURCE
-        "${assign1_SOURCE_DIR}/src/server.c"
+        "${assignment1_SOURCE_DIR}/src/server.c"
         )
 
 set(CLIENT_MAIN_SOURCE
-        "${assign1_SOURCE_DIR}/src/client.c"
+        "${assignment1_SOURCE_DIR}/src/client.c"
         )
+
 
 ### Require out-of-source builds
 # this still creates a CMakeFiles directory and CMakeCache.txt- can we delete them?

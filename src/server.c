@@ -5,29 +5,11 @@
 #include <dc_application/options.h>
 #include <dc_posix/dc_stdlib.h>
 #include <dc_posix/dc_string.h>
+#include <dc_posix/dc_inttypes.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-
-struct application_settings
-{
-    struct dc_opt_settings opts;
-    struct dc_setting_string *message;
-};
-
-
-
-static struct dc_application_settings *create_settings(const struct dc_posix_env *env, struct dc_error *err);
-static int destroy_settings(const struct dc_posix_env *env,
-                            struct dc_error *err,
-                            struct dc_application_settings **psettings);
-static int run(const struct dc_posix_env *env, struct dc_error *err, struct dc_application_settings *settings);
-static void error_reporter(const struct dc_error *err);
-static void trace_reporter(const struct dc_posix_env *env,
-                           const char *file_name,
-                           const char *function_name,
-                           size_t line_number);
+#include "server.h"
 
 
 int main(int argc, char *argv[])
@@ -39,8 +21,7 @@ int main(int argc, char *argv[])
     struct dc_application_info *info;
     int ret_val;
 
-    reporter = error_reporter;
-    tracer = trace_reporter;
+    reporter = dc_error_default_error_reporter;
     tracer = NULL;
     dc_error_init(&err, reporter);
     dc_posix_env_init(&env, tracer);
@@ -55,6 +36,8 @@ int main(int argc, char *argv[])
 static struct dc_application_settings *create_settings(const struct dc_posix_env *env, struct dc_error *err)
 {
     struct application_settings *settings;
+    static const uint16_t default_port = DEFAULT_PORT;
+    static const char* default_directory = DEFAULT_DIRECTORY;
 
     DC_TRACE(env);
     settings = dc_malloc(env, err, sizeof(struct application_settings));
@@ -65,7 +48,8 @@ static struct dc_application_settings *create_settings(const struct dc_posix_env
     }
 
     settings->opts.parent.config_path = dc_setting_path_create(env, err);
-    settings->message = dc_setting_string_create(env, err);
+    settings->port = dc_setting_uint16_create(env, err);
+    settings->directory = dc_setting_string_create(env, err);
 
     struct options opts[] = {
             {(struct dc_setting *)settings->opts.parent.config_path,
@@ -78,16 +62,26 @@ static struct dc_application_settings *create_settings(const struct dc_posix_env
                     NULL,
                     dc_string_from_config,
                     NULL},
-            {(struct dc_setting *)settings->message,
+            {(struct dc_setting *)settings->directory,
                     dc_options_set_string,
-                    "message",
+                    "directory",
                     required_argument,
-                    'm',
-                    "MESSAGE",
+                    'd',
+                    "DIRECTORY",
                     dc_string_from_string,
-                    "message",
+                    "directory",
                     dc_string_from_config,
-                    "Hello, Default World!"},
+                    default_directory},
+            {(struct dc_setting *)settings->port,
+                    dc_options_set_uint16,
+                    "port",
+                    required_argument,
+                    'p',
+                    "PORT",
+                    dc_uint16_from_string,
+                    "port",
+                    dc_uint16_from_config,
+                    &default_port},
     };
 
     // note the trick here - we use calloc and add 1 to ensure the last line is all 0/NULL
@@ -95,8 +89,8 @@ static struct dc_application_settings *create_settings(const struct dc_posix_env
     settings->opts.opts_size = sizeof(struct options);
     settings->opts.opts = dc_calloc(env, err, settings->opts.opts_count, settings->opts.opts_size);
     dc_memcpy(env, settings->opts.opts, opts, sizeof(opts));
-    settings->opts.flags = "m:";
-    settings->opts.env_prefix = "DC_EXAMPLE_";
+    settings->opts.flags = "c:d:p:";
+    settings->opts.env_prefix = "ASSIGN_1_SERVER_";
 
     return (struct dc_application_settings *)settings;
 }
@@ -109,7 +103,8 @@ static int destroy_settings(const struct dc_posix_env *env,
 
     DC_TRACE(env);
     app_settings = (struct application_settings *)*psettings;
-    dc_setting_string_destroy(env, &app_settings->message);
+    dc_setting_uint16_destroy(env, &app_settings->port);
+    dc_setting_string_destroy(env, &app_settings->directory);
     dc_free(env, app_settings->opts.opts, app_settings->opts.opts_count);
     dc_free(env, *psettings, sizeof(struct application_settings));
 
@@ -124,13 +119,15 @@ static int destroy_settings(const struct dc_posix_env *env,
 static int run(const struct dc_posix_env *env, struct dc_error *err, struct dc_application_settings *settings)
 {
     struct application_settings *app_settings;
-    const char *message;
+    in_port_t port;
+    const char *directory;
 
     DC_TRACE(env);
 
     app_settings = (struct application_settings *)settings;
-    message = dc_setting_string_get(env, app_settings->message);
-    printf("prog1 says \"%s\"\n", message);
+    port = dc_setting_uint16_get(env, app_settings->port);
+    directory = dc_setting_string_get(env, app_settings->directory);
+    printf("server says \"%d %s\"\n", port, directory);
 
     return EXIT_SUCCESS;
 }
