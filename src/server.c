@@ -2,29 +2,14 @@
 #include "copy.h"
 #include "error.h"
 #include "server.h"
-#include <arpa/inet.h>
-#include <assert.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <net/if.h>
-#include <sys/ioctl.h>
-#include <netinet/in.h>
-#include <net/if.h>
-#include <netdb.h>
-#include <ifaddrs.h>
-#include <ctype.h>
 
 
 struct options
 {
-    char *file_name;
-    char *ip_in;
+    char* file_name;
+    char* ip_in;
     in_port_t port_in;
+    char directory[50];
     int fd_in;
     int fd_in2;
     int fd_out;
@@ -38,7 +23,6 @@ static void cleanup(const struct options *opts);
 
 
 #define BUF_SIZE 1024
-#define DEFAULT_PORT 5000
 #define BACKLOG 5
 
 int main(int argc, char *argv[])
@@ -49,9 +33,8 @@ int main(int argc, char *argv[])
     parse_arguments(argc, argv, &opts);
     options_process(&opts);
     copy(opts.fd_in, opts.fd_out, BUF_SIZE);
+
     cleanup(&opts);
-
-
     return EXIT_SUCCESS;
 }
 
@@ -68,8 +51,11 @@ static void options_init(struct options *opts)
 //    printf("%s\n", inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
     memset(opts, 0, sizeof(struct options));
 
+    // DEFAULT SETTINGS FOR OPTION
     opts->ip_in   = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
     opts->fd_in   = STDOUT_FILENO;
+    strcpy(opts->directory, DEFAULT_DIRECTORY);
+    printf("default directory: %s\n", opts->directory);
     opts->port_in  = DEFAULT_PORT;
 }
 
@@ -78,13 +64,19 @@ static void parse_arguments(int argc, char *argv[], struct options *opts)
 {
     int c;
 
-    while((c = getopt(argc, argv, ":i:p:")) != -1)   // NOLINT(concurrency-mt-unsafe)
+    while((c = getopt(argc, argv, ":i:d:p:")) != -1)   // NOLINT(concurrency-mt-unsafe)
     {
         switch(c)
         {
             case 'i':
             {
                 opts->ip_in = optarg;
+                break;
+            }
+            case 'd':
+            {
+                strcpy(opts->directory, optarg);
+                printf("changed directory: %s\n", opts->directory);
                 break;
             }
             case 'p':
@@ -192,43 +184,4 @@ static void cleanup(const struct options *opts)
         close(opts->fd_in);
         close(opts->fd_in2);
     }
-}
-
-
-unsigned int ip_to_int (const char * ip)
-{
-    char c;
-    c = *ip;
-    unsigned int integer;
-    int val;
-    int i,j=0;
-    for (j=0;j<4;j++) {
-        if (!isdigit(c)){  //first char is 0
-            return (0);
-        }
-        val=0;
-        for (i=0;i<3;i++) {
-            if (isdigit(c)) {
-                val = (val * 10) + (c - '0');
-                c = *++ip;
-            } else
-                break;
-        }
-        if(val<0 || val>255){
-            return (0);
-        }
-        if (c == '.') {
-            integer=(integer<<8) | val;
-            c = *++ip;
-        }
-        else if(j==3 && c == '\0'){
-            integer=(integer<<8) | val;
-            break;
-        }
-
-    }
-    if(c != '\0'){
-        return (0);
-    }
-    return (htonl(integer));
 }
