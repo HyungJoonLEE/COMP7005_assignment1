@@ -11,10 +11,12 @@ project(assignment1
 set(HEADER_LIST
         "${assignment1_SOURCE_DIR}/include/common.h"
         "${assignment1_SOURCE_DIR}/include/server.h"
+        "${assignment1_SOURCE_DIR}/include/error.h"
         )
 
 set(COMMON_SOURCE_LIST
         "${assignment1_SOURCE_DIR}/src/common.c"
+        "${assignment1_SOURCE_DIR}/src/error.c"
         )
 
 set(SERVER_SOURCE_LIST

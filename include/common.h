@@ -1,5 +1,5 @@
-#ifndef MORSE_COMMON_H
-#define MORSE_COMMON_H
+#ifndef ASSIGN1_COMMON_H
+#define ASSIGN1_COMMON_H
 
 /*
  * This file is part of dc_dump.
@@ -18,6 +18,8 @@
  *  along with dc_dump.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#define TRUE 1
+#define FALSE 0
 /**
  * A function to be documented.
  *

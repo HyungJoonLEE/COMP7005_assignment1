@@ -25,7 +25,7 @@ target_include_directories(CLIENT PRIVATE /usr/local/include)
 target_link_directories(CLIENT PRIVATE /usr/lib)
 target_link_directories(CLIENT PRIVATE /usr/local/lib)
 
-# All users of this library will need at least C11
+# All users of this library will need at least C17
 target_compile_features(SERVER PUBLIC c_std_17)
 target_compile_options(SERVER PRIVATE -g)
 target_compile_options(SERVER PRIVATE -fstack-protector-all -ftrapv)

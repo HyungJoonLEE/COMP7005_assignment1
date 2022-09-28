@@ -1,15 +1,18 @@
 #include <dc_application/command_line.h>
 #include <dc_application/config.h>
-#include <dc_application/defaults.h>
-#include <dc_application/environment.h>
+//#include <dc_application/defaults.h>
+//#include <dc_application/environment.h>
 #include <dc_application/options.h>
 #include <dc_posix/dc_stdlib.h>
 #include <dc_posix/dc_string.h>
 #include <dc_posix/dc_inttypes.h>
+#include <netinet/in.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "server.h"
+#include "error.h"
+
 
 
 int main(int argc, char *argv[])
@@ -121,6 +124,9 @@ static int run(const struct dc_posix_env *env, struct dc_error *err, struct dc_a
     struct application_settings *app_settings;
     in_port_t port;
     const char *directory;
+    int server_socket, client_socket;
+    struct sockaddr_in server_address;
+    struct sockaddr_in client_address;
 
     DC_TRACE(env);
 
@@ -129,8 +135,28 @@ static int run(const struct dc_posix_env *env, struct dc_error *err, struct dc_a
     directory = dc_setting_string_get(env, app_settings->directory);
     printf("server says \"%d %s\"\n", port, directory);
 
+
+    /* Create an AF_INET stream socket to receive incoming      */
+    /* connections on                                           */
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_socket == -1)
+        fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+
+
+    memset(&server_address, 0, sizeof(server_address));
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(port);
+    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    if (bind(server_socket, (struct sockaddr *) &server_address, sizeof(server_address)) == -1) {
+        fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+    }
+
+
+
     return EXIT_SUCCESS;
 }
+
 
 static void error_reporter(const struct dc_error *err)
 {
@@ -145,3 +171,4 @@ static void trace_reporter(__attribute__((unused)) const struct dc_posix_env *en
 {
     fprintf(stdout, "TRACE: %s : %s : @ %zu\n", file_name, function_name, line_number);
 }
+
