@@ -4,8 +4,27 @@
 #ifndef ASSIGN1_SERVER_H
 #define ASSIGN1_SERVER_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/ioctl.h>
+#include <sys/poll.h>
+#include <sys/socket.h>
+#include <errno.h>
+#include <unistd.h>
+#include <string.h>
+#include <netinet/in.h>
+#include <dc_application/command_line.h>
+#include <dc_application/options.h>
+#include <dc_posix/dc_stdlib.h>
+#include <dc_posix/dc_string.h>
+#include <dc_application/config.h>
+#include <dc_posix/dc_inttypes.h>
+#include <getopt.h>
+#include <inttypes.h>
+
 #define DEFAULT_PORT 8000
 #define DEFAULT_DIRECTORY " ~/server"
+#define MSG_MAX_LEN 1280
 
 
 struct application_settings
