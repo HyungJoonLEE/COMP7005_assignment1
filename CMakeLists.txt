@@ -12,6 +12,7 @@ set(HEADER_LIST
         "${assignment1_SOURCE_DIR}/include/common.h"
         "${assignment1_SOURCE_DIR}/include/server.h"
         "${assignment1_SOURCE_DIR}/include/error.h"
+        "${assignment1_SOURCE_DIR}/include/client.h"
         )
 
 set(COMMON_SOURCE_LIST

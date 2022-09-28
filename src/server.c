@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
     dc_posix_env_init(&env, tracer);
     reporter = dc_error_default_error_reporter;
     dc_error_init(&err, reporter);
-    info = dc_application_info_create(&env, &err, "CPT Chat Application");
+    info = dc_application_info_create(&env, &err, "COMP7005 ASSIGN1");
     ret_val = dc_application_run(&env, &err, info, create_settings, destroy_settings, run, dc_default_create_lifecycle,
                                  dc_default_destroy_lifecycle,
                                  "~/.dcecho.conf",
@@ -29,6 +29,7 @@ int main(int argc, char *argv[]) {
 
 static struct dc_application_settings *create_settings(const struct dc_posix_env *env, struct dc_error *err) {
     static const uint16_t default_port = DEFAULT_PORT;
+    static const char* default_directory = DEFAULT_DIRECTORY;
     struct application_settings *settings;
 
     settings = dc_malloc(env, err, sizeof(struct application_settings));
@@ -45,6 +46,7 @@ static struct dc_application_settings *create_settings(const struct dc_posix_env
     struct options opts[] =
             {
                     {(struct dc_setting *) settings->opts.parent.config_path, dc_options_set_path,   "config", required_argument, 'c', "CONFIG", dc_string_from_string, NULL,   dc_string_from_config, NULL},
+                    {(struct dc_setting *) settings->directory,                    dc_options_set_string, "directory",   required_argument, 'd', "DIRECTORY",   dc_string_from_string, "directory", dc_string_from_config, default_directory},
                     {(struct dc_setting *) settings->port,                    dc_options_set_uint16, "port",   required_argument, 'p', "PORT",   dc_uint16_from_string, "port", dc_uint16_from_config, &default_port},
             };
 #pragma GCC diagnostic pop
@@ -52,8 +54,8 @@ static struct dc_application_settings *create_settings(const struct dc_posix_env
     // note the trick here - we use calloc and add 1 to ensure the last line is all 0/NULL
     settings->opts.opts = dc_calloc(env, err, (sizeof(opts) / sizeof(struct options)) + 1, sizeof(struct options));
     dc_memcpy(env, settings->opts.opts, opts, sizeof(opts));
-    settings->opts.flags = "c:p:";
-    settings->opts.env_prefix = "CPT_CHAT_";
+    settings->opts.flags = "c:d:p:";
+    settings->opts.env_prefix = "ASSIGN1_";
 
     return (struct dc_application_settings *) settings;
 }
@@ -63,6 +65,7 @@ static int destroy_settings(const struct dc_posix_env *env, __attribute__ ((unus
     struct application_settings *app_settings;
 
     app_settings = (struct application_settings *) *psettings;
+    dc_setting_string_destroy(env, &app_settings->directory);
     dc_setting_uint16_destroy(env, &app_settings->port);
     dc_free(env, app_settings->opts.opts, app_settings->opts.opts_size);
     dc_free(env, app_settings, sizeof(struct application_settings));
@@ -96,9 +99,9 @@ static int run(const struct dc_posix_env *env, __attribute__ ((unused)) struct d
     ret_val = 0;
 
 
-    /* Create an AF_INET6 stream socket to receive incoming      */
+    /* Create an AF_INET stream socket to receive incoming      */
     /* connections on                                            */
-    listen_sd = socket(AF_INET6, SOCK_STREAM, 0);
+    listen_sd = socket(AF_INET, SOCK_STREAM, 0);
     if (listen_sd < 0) {
         perror("socket() failed");
         exit(-1);
@@ -121,7 +124,7 @@ static int run(const struct dc_posix_env *env, __attribute__ ((unused)) struct d
     }
 
     memset(&addr, 0, sizeof(addr));
-    addr.sin6_family = AF_INET6;
+    addr.sin6_family = AF_INET;
     memcpy(&addr.sin6_addr, &in6addr_any, sizeof(in6addr_any));
     addr.sin6_port = htons(port);
     rc = bind(listen_sd,
@@ -216,6 +219,7 @@ static int run(const struct dc_posix_env *env, __attribute__ ((unused)) struct d
                 close_conn = FALSE;
                 /* Receive all incoming data on this socket            */
                 /* before we loop back and call poll again.            */
+
                 do {
                     /* Receive data on this connection until the         */
                     /* recv fails with EWOULDBLOCK. If any other         */
@@ -230,6 +234,7 @@ static int run(const struct dc_posix_env *env, __attribute__ ((unused)) struct d
                         break;
                     }
 
+                    fwrite(buffer, sizeof(char), rc, )
                     /* Check to see if the connection has been           */
                     /* closed by the client                              */
                     if (rc == 0) {
@@ -262,7 +267,6 @@ static int run(const struct dc_posix_env *env, __attribute__ ((unused)) struct d
                 }
             }
         }
-
     } while (end_server == FALSE); /* End of serving running.    */
 
     /* Clean up all of the sockets that are open                 */

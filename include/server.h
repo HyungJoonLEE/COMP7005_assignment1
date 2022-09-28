@@ -22,9 +22,7 @@
 #include <getopt.h>
 #include <inttypes.h>
 
-#define DEFAULT_PORT 8000
-#define DEFAULT_DIRECTORY " ~/server"
-#define MSG_MAX_LEN 1280
+#define DEFAULT_DIRECTORY " ~/server/Downloads"
 
 
 struct application_settings
