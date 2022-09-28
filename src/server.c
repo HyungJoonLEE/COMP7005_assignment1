@@ -24,9 +24,7 @@ struct options
 {
     char *file_name;
     char *ip_in;
-    char *ip_out;
     in_port_t port_in;
-    in_port_t port_out;
     int fd_in;
     int fd_in2;
     int fd_out;
@@ -67,13 +65,11 @@ static void options_init(struct options *opts)
     ifr.ifr_addr.sa_family = AF_INET;
     snprintf(ifr.ifr_name, IFNAMSIZ, "en0");
     ioctl(fd, SIOCGIFADDR, &ifr);
-
-    /* and more importantly */
-    printf("%s\n", inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
+//    printf("%s\n", inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
     memset(opts, 0, sizeof(struct options));
 
     opts->ip_in   = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-    opts->fd_out   = STDOUT_FILENO;
+    opts->fd_in   = STDOUT_FILENO;
     opts->port_in  = DEFAULT_PORT;
 }
 
@@ -195,11 +191,6 @@ static void cleanup(const struct options *opts)
     {
         close(opts->fd_in);
         close(opts->fd_in2);
-    }
-
-    if(opts->ip_out)
-    {
-        close(opts->fd_out);
     }
 }
 
