@@ -22,6 +22,7 @@ struct options
     int fd_in;
     int fd_in2;
     int fd_out;
+    char send_file_name[50];
 };
 
 
@@ -54,7 +55,6 @@ static void options_init(struct options *opts)
     memset(opts, 0, sizeof(struct options));
     opts->fd_in    = STDIN_FILENO;
     opts->fd_out   = STDOUT_FILENO;
-    opts->port_in  = DEFAULT_PORT;
     opts->port_out = DEFAULT_PORT;
 }
 
@@ -74,17 +74,19 @@ static void parse_arguments(int argc, char *argv[], struct options *opts)
             }
             case 'p':
             {
-                opts->port_out = parse_port(optarg, 10); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+                opts->port_out = parse_port(optarg,
+                                            10); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
                 break;
             }
             case ':':
             {
-                fatal_message(__FILE__, __func__ , __LINE__, "\"Option requires an operand\"", 5); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+                fatal_message(__FILE__, __func__, __LINE__, "\"Option requires an operand\"", 5); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
                 break;
             }
             case '?':
             {
-                fatal_message(__FILE__, __func__ , __LINE__, "Unknown", 6); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+                fatal_message(__FILE__, __func__, __LINE__, "Unknown",
+                              6); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
             }
             default:
             {
@@ -95,7 +97,9 @@ static void parse_arguments(int argc, char *argv[], struct options *opts)
 
     if(optind < argc)
     {
-        opts->file_name = argv[optind];
+//        opts->file_name = argv[optind];
+        strcpy(opts->send_file_name, argv[optind]);
+        printf("optind: %s\n", opts->send_file_name);
     }
 }
 

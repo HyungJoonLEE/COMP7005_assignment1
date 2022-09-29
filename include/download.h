@@ -13,6 +13,8 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <ctype.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include "server.h"
 
 #define MAX_BUFFER	1024
@@ -20,5 +22,7 @@
 #define MAXBUF 1300
 
 void download_file(struct options *opts);
+int mkdirs(const char *path, mode_t mode);
+
 
 #endif //ASSIGNMENT1_DOWNLOAD_H

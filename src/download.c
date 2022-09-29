@@ -29,6 +29,7 @@ void download_file(struct options *opts) {
         ssize_t read_len, file_read_len;
         char buf[MAXBUF];
         char file_name[MAXBUF];
+        char dir_divider[2] = "/";
         ssize_t fd_write;
 
         opts->fd_in2 = socket(AF_INET, SOCK_STREAM, 0);
@@ -66,6 +67,7 @@ void download_file(struct options *opts) {
 
         client_address_size = sizeof(client_address);
 
+
         while(1) {
             memset(buf, 0x00, MAXBUF);
             opts->client_socket = accept(opts->fd_in2, (struct sockaddr*)&client_address, &client_address_size);
@@ -75,6 +77,10 @@ void download_file(struct options *opts) {
                 fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
             }
             printf("New Client Connect: %s\n", inet_ntoa(client_address.sin_addr));
+
+            strcat(opts->directory, dir_divider);
+            strcat(opts->directory, inet_ntoa(client_address.sin_addr));
+            mkdirs(opts->directory, 0776);
 
             read_len = read(opts->client_socket, buf, MAXBUF);
             if(read_len > 0) {
@@ -86,24 +92,56 @@ void download_file(struct options *opts) {
                 break;
             }
 
-        opts->fd_source = open(file_name, O_RDONLY);
-        if(!opts->fd_source) {
-            perror("file open error : ");
-            break ;
+            opts->fd_source = open(file_name, O_RDONLY);
+            if(!opts->fd_source) {
+                perror("file open error\n");
+                break ;
+            }
+            while(1) {
+                memset(buf, 0x00, MAXBUF);
+                file_read_len = read(opts->fd_source, buf, MAXBUF);
+                printf("\nread : %s",buf);
+                fd_write = write(opts->client_socket, buf, MAXBUF);
+                if(file_read_len == EOF | file_read_len == 0) {
+                    printf("finish file\n");
+                    break;
+                }
+            }
+
+            close(opts->client_socket);
+            close(opts->fd_source);
         }
-        printf("before while\n");
-        while(1) {
-            memset(buf, 0x00, MAXBUF);
-            file_read_len = read(opts->fd_source, buf, MAXBUF);
-            printf("\nread : %s",buf);
-            fd_write = write(opts->client_socket, buf, MAXBUF);
-            if(file_read_len == EOF | file_read_len == 0) {
-                printf("finish file\n");
-                break;
+    }
+}
+
+
+int mkdirs(const char *path, mode_t mode)
+{
+    char tmp_path[100];
+    const char *tmp = path;
+    long len  = 0;
+    int ret;
+
+    if(path == NULL || strlen(path) >= 2048) {
+        return -1;
+    }
+
+    while((tmp = strchr(tmp, '/')) != NULL) {
+        len = tmp - path;
+        tmp++;
+
+        if(len == 0) {
+            continue;
+        }
+        strncpy(tmp_path, path, len);
+        tmp_path[len] = 0x00;
+
+        if((ret = mkdir(tmp_path, mode)) == -1) {
+            if(errno != EEXIST) {
+                printf("Path exist\n");
+                return -1;
             }
         }
-        close(opts->client_socket);
-        close(opts->fd_source);
     }
-    }
+    return mkdir(path, mode);
 }

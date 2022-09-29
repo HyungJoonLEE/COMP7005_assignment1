@@ -36,7 +36,7 @@ static void options_init(struct options *opts)
     ifr.ifr_addr.sa_family = AF_INET;
     snprintf(ifr.ifr_name, IFNAMSIZ, "en0");
     ioctl(fd, SIOCGIFADDR, &ifr);
-//    printf("%s\n", inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
+    printf("%s\n", inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
     memset(opts, 0, sizeof(struct options));
 
     // DEFAULT SETTINGS FOR OPTION
