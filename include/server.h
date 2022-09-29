@@ -21,5 +21,18 @@
 #define DEFAULT_DIRECTORY "~/server"
 #define INVALID 0
 
+struct options
+{
+    char* file_name;
+    char* ip_in;
+    in_port_t port_in;
+    char directory[50];
+    int fd_in;
+    int fd_in2;
+    int fd_out;
+    int fd_source;
+    int client_socket;
+};
+
 
 #endif //ASSIGN1_SERVER_H

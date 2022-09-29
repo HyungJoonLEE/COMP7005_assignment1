@@ -2,19 +2,7 @@
 #include "copy.h"
 #include "error.h"
 #include "server.h"
-
-
-struct options
-{
-    char* file_name;
-    char* ip_in;
-    in_port_t port_in;
-    char directory[50];
-    int fd_in;
-    int fd_in2;
-    int fd_out;
-};
-
+#include "download.h"
 
 static void options_init(struct options *opts);
 static void parse_arguments(int argc, char *argv[], struct options *opts);
@@ -31,9 +19,9 @@ int main(int argc, char *argv[])
 
     options_init(&opts);
     parse_arguments(argc, argv, &opts);
-    options_process(&opts);
-    copy(opts.fd_in, opts.fd_out, BUF_SIZE);
-
+    //    options_process(&opts);
+    //    copy(opts.client_socket, opts.fd_out, BUF_SIZE);
+    download_file(&opts);
     cleanup(&opts);
     return EXIT_SUCCESS;
 }
@@ -126,7 +114,9 @@ static void options_process(struct options *opts)
 
     if(opts->ip_in)
     {
-        struct sockaddr_in addr;
+        struct sockaddr_in server_address;
+        struct sockaddr_in client_address;
+        socklen_t client_address_size;
         int result;
         int option;
 
@@ -137,11 +127,11 @@ static void options_process(struct options *opts)
             fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
         }
 
-        addr.sin_family = AF_INET;
-        addr.sin_port = htons(opts->port_in);
-        addr.sin_addr.s_addr = inet_addr(opts->ip_in);
+        server_address.sin_family = AF_INET;
+        server_address.sin_port = htons(opts->port_in);
+        server_address.sin_addr.s_addr = inet_addr(opts->ip_in);
 
-        if(addr.sin_addr.s_addr ==  (in_addr_t)-1)
+        if(server_address.sin_addr.s_addr ==  (in_addr_t)-1)
         {
             fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
         }
@@ -149,7 +139,7 @@ static void options_process(struct options *opts)
         option = 1;
         setsockopt(opts->fd_in2, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
 
-        result = bind(opts->fd_in2, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+        result = bind(opts->fd_in2, (struct sockaddr *)&server_address, sizeof(struct sockaddr_in));
 
         if(result == -1)
         {
@@ -163,9 +153,14 @@ static void options_process(struct options *opts)
             fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
         }
 
-        opts->fd_in = accept(opts->fd_in2, NULL, 0);
+        client_address_size = sizeof(client_address);
 
-        if(opts->fd_in == -1)
+        // accept(server_socket, client_address, client_address_length)
+        // fd_in is now client socket
+        opts->fd_in = accept(opts->fd_in2, NULL, 0);
+        opts->client_socket = accept(opts->fd_in2, (struct sockaddr*)&client_address, &client_address_size);
+
+        if(opts->fd_in == -1 || opts->client_socket == -1)
         {
             fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
         }
