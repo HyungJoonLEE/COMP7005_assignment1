@@ -6,64 +6,71 @@
 
 
 void download_file(struct options_server *opts) {
+    ssize_t text_file_title;
+    int text_file_title_fd;
+    ssize_t nbyte = 256;
+    char received_content[BUFSIZ];
+    size_t filesize = 0, bufsize = 0;
+    FILE *file = NULL;
 
-        struct sockaddr_in server_address;
-        struct sockaddr_in client_address;
-        socklen_t client_address_size;
+    recv(opts->client_socket, received_content, strlen(received_content), 0);
+    printf("this is received content: %s\n", received_content);
+    file = fopen("hello.txt", "wb");
 
-        ssize_t read_len, file_read_len;
-        char buf[MAXBUF];
-        char file_name[MAXBUF];
-        char dir_divider[2] = "/";
-        ssize_t fd_write;
+    //ntohl(filesize);
+    //recv filesize
 
+    //recv(clnt_sock, &filesize, sizeof(filesize), 0);
+    //ntohl(filesize);
+    //printf("file size = [%ld]\n", filesize);
+    bufsize = 256;
 
-        client_address_size = sizeof(client_address);
+    while (/*filesize != 0*/nbyte != 0) {
+        //if(filesize < 256) bufsize = filesize;
+        nbyte = recv(opts->client_socket, received_content, bufsize, 0);
+        //printf("filesize:%ld nbyte: %d\n", filesize, nbyte);
 
-        while(1) {
-            memset(buf, 0x00, MAXBUF);
-            opts->client_socket = accept(opts->server_socket, (struct sockaddr*)&client_address, &client_address_size);
+        //filesize = filesize -nbyte;
 
-            if(opts->client_socket == -1)
-            {
-                fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
-            }
-            printf("New Client Connect: %s\n", inet_ntoa(client_address.sin_addr));
-
-            strcat(opts->directory, dir_divider);
-            strcat(opts->directory, inet_ntoa(client_address.sin_addr));
-            mkdirs(opts->directory, 0776);
-
-            read_len = read(opts->fd_out, buf, MAXBUF);
-            if(read_len > 0) {
-                memset(file_name, 0x00, MAXBUF);
-                strcpy(file_name, buf);
-                printf("%s > %s\n", inet_ntoa(client_address.sin_addr), file_name);
-            } else {
-                close(opts->client_socket);
-                break;
-            }
-
-            opts->fd_source = open(file_name, O_RDONLY);
-            if(!opts->fd_source) {
-                perror("file open error\n");
-                break ;
-            }
-            while(1) {
-                memset(buf, 0x00, MAXBUF);
-                file_read_len = read(opts->fd_source, buf, MAXBUF);
-                printf("\nread : %s",buf);
-                fd_write = write(opts->client_socket, buf, MAXBUF);
-                if(file_read_len == EOF | file_read_len == 0) {
-                    printf("finish file\n");
-                    break;
-                }
-            }
-
-            close(opts->client_socket);
-            close(opts->fd_source);
-        }
+        fwrite(received_content, sizeof(char), (unsigned long) nbyte, file);
+        //nbyte = 0;
     }
+}
+//        client_address_size = sizeof(client_address);
+//
+//        while(1) {
+//            memset(buf, 0x00, MAXBUF);
+//
+//            read_len = read(opts->fd_out, buf, MAXBUF);
+//            if(read_len > 0) {
+//                memset(file_name, 0x00, MAXBUF);
+//                strcpy(file_name, buf);
+//                printf("%s > %s\n", inet_ntoa(client_address.sin_addr), file_name);
+//            } else {
+//                close(opts->client_socket);
+//                break;
+//            }
+//
+//            opts->fd_source = open(file_name, O_RDONLY);
+//            if(!opts->fd_source) {
+//                perror("file open error\n");
+//                break ;
+//            }
+//            while(1) {
+//                memset(buf, 0x00, MAXBUF);
+//                file_read_len = read(opts->fd_source, buf, MAXBUF);
+//                printf("\nread : %s",buf);
+//                fd_write = write(opts->client_socket, buf, MAXBUF);
+//                if(file_read_len == EOF | file_read_len == 0) {
+//                    printf("finish file\n");
+//                    break;
+//                }
+//            }
+//
+//            close(opts->client_socket);
+//            close(opts->fd_source);
+//        }
+//    }
 
 
 

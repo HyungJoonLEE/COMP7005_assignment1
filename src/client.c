@@ -109,15 +109,15 @@ static void options_process(struct options *opts)
 {
     ssize_t server_connection_test_fd;
     char message[30];
-//    if(opts->file_name)
-//    {
-//        opts->fd_in = open(opts->file_name, O_RDONLY);
-//
-//        if(opts->fd_in == -1)
-//        {
-//            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
-//        }
-//    }
+    if(opts->file_name)
+    {
+        opts->fd_in = open(opts->file_name, O_RDONLY);
+
+        if(opts->fd_in == -1)
+        {
+            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+        }
+    }
 
 
     if(opts->ip_out)
@@ -158,12 +158,6 @@ static void options_process(struct options *opts)
 
 static void cleanup(const struct options *opts)
 {
-    if(opts->ip_in)
-    {
-        close(opts->fd_in);
-        close(opts->fd_in2);
-    }
-
     if(opts->ip_out)
     {
         close(opts->fd_out);

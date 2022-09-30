@@ -33,6 +33,7 @@ struct options_server
     int fd_source;
     int server_socket;
     int client_socket;
+    char* file_arr[50];
 };
 
 

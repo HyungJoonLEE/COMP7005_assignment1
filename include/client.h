@@ -20,7 +20,6 @@
 struct options
 {
     char *file_name;
-    char *ip_in;
     char *ip_out;
     in_port_t port_out;
     int fd_in;
@@ -31,6 +30,8 @@ struct options
     int file_count;
     char send_file_name[100];
 };
+
+
 
 
 static void options_init(struct options *opts);

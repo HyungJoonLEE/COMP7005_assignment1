@@ -15,8 +15,8 @@ int main(int argc, char *argv[])
     options_init_server(&opts);
     parse_arguments_server(argc, argv, &opts);
     options_process_server(&opts);
-    copy(opts.client_socket, opts.fd_out, BUF_SIZE);
-//    download_file(&opts);
+//    copy(opts.client_socket, opts.fd_out, BUF_SIZE);
+    download_file(&opts);
     cleanup_server(&opts);
     return EXIT_SUCCESS;
 }
@@ -38,7 +38,7 @@ static void options_init_server(struct options_server *opts)
     opts->ip_in   = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
     opts->fd_in   = STDOUT_FILENO;
     strcpy(opts->directory, DEFAULT_DIRECTORY);
-    printf("default directory: %s\n", opts->directory);
+//    printf("default directory: %s\n", opts->directory);
     opts->port_in  = DEFAULT_PORT;
 }
 
@@ -59,7 +59,7 @@ static void parse_arguments_server(int argc, char *argv[], struct options_server
             case 'd':
             {
                 strcpy(opts->directory, optarg);
-                printf("changed directory: %s\n", opts->directory);
+//                printf("changed directory: %s\n", opts->directory);
                 break;
             }
             case 'p':
@@ -115,6 +115,7 @@ static void options_process_server(struct options_server *opts)
         socklen_t client_address_size;
         int result;
         int option;
+        char dir_divider[2] = "/";
 
         opts->server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -159,6 +160,13 @@ static void options_process_server(struct options_server *opts)
             fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
         }
         write(opts->client_socket, message, strlen(message));
+
+        printf("New Client Connect: %s\n", inet_ntoa(client_address.sin_addr));
+
+        strcat(opts->directory, dir_divider);
+        strcat(opts->directory, inet_ntoa(client_address.sin_addr));
+        mkdirs(opts->directory, 0776);
+        if(chdir(opts->directory) == 0) printf("Directory changed to %s\n", opts->directory);
     }
 }
 
