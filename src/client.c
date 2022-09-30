@@ -1,6 +1,9 @@
 #include "conversion.h"
 #include "copy.h"
 #include "error.h"
+#include "process.h"
+#include "client.h"
+
 #include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
@@ -12,18 +15,6 @@
 #include <unistd.h>
 
 
-struct options
-{
-    char *file_name;
-    char *ip_in;
-    char *ip_out;
-    in_port_t port_in;
-    in_port_t port_out;
-    int fd_in;
-    int fd_in2;
-    int fd_out;
-    char send_file_name[50];
-};
 
 
 static void options_init(struct options *opts);
@@ -43,7 +34,10 @@ int main(int argc, char *argv[])
     options_init(&opts);
     parse_arguments(argc, argv, &opts);
     options_process(&opts);
-    copy(opts.fd_in, opts.fd_out, BUF_SIZE);
+    printf("file_count = %d\n", opts.file_count);
+//    copy(opts.fd_in, opts.server_socket, BUF_SIZE);
+    client_read_from_file(&opts, BUF_SIZE);
+
     cleanup(&opts);
 
     return EXIT_SUCCESS;
@@ -97,53 +91,67 @@ static void parse_arguments(int argc, char *argv[], struct options *opts)
 
     if(optind < argc)
     {
-//        opts->file_name = argv[optind];
-        strcpy(opts->send_file_name, argv[optind]);
-        printf("optind: %s\n", opts->send_file_name);
+        int i = 0;
+        while (argv[optind + i] != NULL){
+            opts->file_arr[i] = argv[optind + i];
+            i++;
+        }
+        opts->file_count = i;
+
+//        for (int j = 0; j < 2; j++) {
+//            printf("optind %d: %s\n", j, opts->file_arr[j]);
+//        }
     }
 }
 
 
 static void options_process(struct options *opts)
 {
-    if(opts->file_name)
-    {
-        opts->fd_in = open(opts->file_name, O_RDONLY);
-
-        if(opts->fd_in == -1)
-        {
-            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
-        }
-    }
+    ssize_t server_connection_test_fd;
+    char message[30];
+//    if(opts->file_name)
+//    {
+//        opts->fd_in = open(opts->file_name, O_RDONLY);
+//
+//        if(opts->fd_in == -1)
+//        {
+//            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+//        }
+//    }
 
 
     if(opts->ip_out)
     {
         int result;
-        struct sockaddr_in addr;
+        struct sockaddr_in server_addr;
 
-        opts->fd_out = socket(AF_INET, SOCK_STREAM, 0);
+        opts->server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
-        if(opts->fd_out == -1)
+        if(opts->server_socket == -1)
         {
             fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
         }
 
-        addr.sin_family = AF_INET;
-        addr.sin_port = htons(opts->port_out);
-        addr.sin_addr.s_addr = inet_addr(opts->ip_out);
+        server_addr.sin_family = AF_INET;
+        server_addr.sin_port = htons(opts->port_out);
+        server_addr.sin_addr.s_addr = inet_addr(opts->ip_out);
 
-        if(addr.sin_addr.s_addr ==  (in_addr_t)-1)
+        if(server_addr.sin_addr.s_addr ==  (in_addr_t)-1)
         {
             fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
         }
 
-        result = connect(opts->fd_out, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+        result = connect(opts->server_socket, (struct sockaddr *)&server_addr, sizeof(struct sockaddr_in));
 
         if(result == -1)
         {
             fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
         }
+        server_connection_test_fd = read(opts->server_socket, message, sizeof(message) - 1);
+        if(server_connection_test_fd == -1) {
+            printf("You are not connected to server\n");
+        }
+        printf("SERVER: %s \n", message);
     }
 }
 

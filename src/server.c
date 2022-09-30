@@ -3,31 +3,26 @@
 #include "error.h"
 #include "server.h"
 #include "download.h"
-
-static void options_init(struct options *opts);
-static void parse_arguments(int argc, char *argv[], struct options *opts);
-static void options_process(struct options *opts);
-static void cleanup(const struct options *opts);
-
+#include "process.h"
 
 #define BUF_SIZE 1024
 #define BACKLOG 5
 
 int main(int argc, char *argv[])
 {
-    struct options opts;
+    struct options_server opts;
 
-    options_init(&opts);
-    parse_arguments(argc, argv, &opts);
-    //    options_process(&opts);
-    //    copy(opts.client_socket, opts.fd_out, BUF_SIZE);
-    download_file(&opts);
-    cleanup(&opts);
+    options_init_server(&opts);
+    parse_arguments_server(argc, argv, &opts);
+    options_process_server(&opts);
+    copy(opts.client_socket, opts.fd_out, BUF_SIZE);
+//    download_file(&opts);
+    cleanup_server(&opts);
     return EXIT_SUCCESS;
 }
 
 
-static void options_init(struct options *opts)
+static void options_init_server(struct options_server *opts)
 {
     int fd;
     struct ifreq ifr;
@@ -37,7 +32,7 @@ static void options_init(struct options *opts)
     snprintf(ifr.ifr_name, IFNAMSIZ, "en0");
     ioctl(fd, SIOCGIFADDR, &ifr);
     printf("%s\n", inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
-    memset(opts, 0, sizeof(struct options));
+    memset(opts, 0, sizeof(struct options_server));
 
     // DEFAULT SETTINGS FOR OPTION
     opts->ip_in   = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
@@ -48,7 +43,7 @@ static void options_init(struct options *opts)
 }
 
 
-static void parse_arguments(int argc, char *argv[], struct options *opts)
+static void parse_arguments_server(int argc, char *argv[], struct options_server *opts)
 {
     int c;
 
@@ -95,22 +90,23 @@ static void parse_arguments(int argc, char *argv[], struct options *opts)
 }
 
 
-static void options_process(struct options *opts)
+static void options_process_server(struct options_server *opts)
 {
+    char* message="You are connected to server\n";
     if(opts->file_name && opts->ip_in)
     {
         fatal_message(__FILE__, __func__ , __LINE__, "Can't pass -i and a filename", 2);
     }
 
-    if(opts->file_name)
-    {
-        opts->fd_in = open(opts->file_name, O_RDONLY);
-
-        if(opts->fd_in == -1)
-        {
-            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
-        }
-    }
+//    if(opts->file_name)
+//    {
+//        opts->fd_in = open(opts->file_name, O_RDONLY);
+//
+//        if(opts->fd_in == -1)
+//        {
+//            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+//        }
+//    }
 
     if(opts->ip_in)
     {
@@ -120,9 +116,9 @@ static void options_process(struct options *opts)
         int result;
         int option;
 
-        opts->fd_in2 = socket(AF_INET, SOCK_STREAM, 0);
+        opts->server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
-        if(opts->fd_in2 == -1)
+        if(opts->server_socket == -1)
         {
             fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
         }
@@ -137,16 +133,16 @@ static void options_process(struct options *opts)
         }
 
         option = 1;
-        setsockopt(opts->fd_in2, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
+        setsockopt(opts->server_socket, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
 
-        result = bind(opts->fd_in2, (struct sockaddr *)&server_address, sizeof(struct sockaddr_in));
+        result = bind(opts->server_socket, (struct sockaddr *)&server_address, sizeof(struct sockaddr_in));
 
         if(result == -1)
         {
             fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
         }
 
-        result = listen(opts->fd_in2, BACKLOG);
+        result = listen(opts->server_socket, BACKLOG);
 
         if(result == -1)
         {
@@ -155,20 +151,19 @@ static void options_process(struct options *opts)
 
         client_address_size = sizeof(client_address);
 
-        // accept(server_socket, client_address, client_address_length)
-        // fd_in is now client socket
-        opts->fd_in = accept(opts->fd_in2, NULL, 0);
-        opts->client_socket = accept(opts->fd_in2, (struct sockaddr*)&client_address, &client_address_size);
+        opts->client_socket = accept(opts->server_socket, (struct sockaddr*)&client_address, &client_address_size);
 
-        if(opts->fd_in == -1 || opts->client_socket == -1)
+//        if(opts->fd_in == -1 || opts->client_socket == -1)
+        if(opts->client_socket == -1)
         {
             fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
         }
+        write(opts->client_socket, message, strlen(message));
     }
 }
 
 
-static void cleanup(const struct options *opts)
+static void cleanup_server(const struct options_server *opts)
 {
     if(opts->file_name)
     {
@@ -177,6 +172,6 @@ static void cleanup(const struct options *opts)
     else if(opts->ip_in)
     {
         close(opts->fd_in);
-        close(opts->fd_in2);
+        close(opts->server_socket);
     }
 }

@@ -21,8 +21,7 @@
 #define BACKLOG 5
 #define MAXBUF 1300
 
-void download_file(struct options *opts);
 int mkdirs(const char *path, mode_t mode);
-
+void download_file(struct options_server *opts);
 
 #endif //ASSIGNMENT1_DOWNLOAD_H

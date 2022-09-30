@@ -15,6 +15,10 @@ set(HEADER_LIST
         "${assignment1_SOURCE_DIR}/include/conversion.h"
         "${assignment1_SOURCE_DIR}/include/copy.h"
         "${assignment1_SOURCE_DIR}/include/download.h"
+        "${assignment1_SOURCE_DIR}/include/client.h"
+        "${assignment1_SOURCE_DIR}/include/send.h"
+        "${assignment1_SOURCE_DIR}/include/process.h"
+
         )
 
 set(COMMON_SOURCE_LIST
@@ -22,6 +26,7 @@ set(COMMON_SOURCE_LIST
         "${assignment1_SOURCE_DIR}/src/error.c"
         "${assignment1_SOURCE_DIR}/src/conversion.c"
         "${assignment1_SOURCE_DIR}/src/copy.c"
+        "${assignment1_SOURCE_DIR}/src/process.c"
         )
 
 set(SERVER_SOURCE_LIST
@@ -29,6 +34,7 @@ set(SERVER_SOURCE_LIST
         )
 
 set(CLIENT_SOURCE_LIST
+        "${assignment1_SOURCE_DIR}/src/send.c"
         )
 
 set(SERVER_MAIN_SOURCE

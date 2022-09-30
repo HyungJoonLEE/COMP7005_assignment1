@@ -21,7 +21,7 @@
 #define DEFAULT_DIRECTORY "~/server"
 #define INVALID 0
 
-struct options
+struct options_server
 {
     char* file_name;
     char* ip_in;
@@ -31,8 +31,14 @@ struct options
     int fd_in2;
     int fd_out;
     int fd_source;
+    int server_socket;
     int client_socket;
 };
 
+
+static void options_init_server(struct options_server *opts);
+static void parse_arguments_server(int argc, char *argv[], struct options_server *opts);
+static void options_process_server(struct options_server *opts);
+static void cleanup_server(const struct options_server *opts);
 
 #endif //ASSIGN1_SERVER_H
