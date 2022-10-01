@@ -23,5 +23,7 @@
 
 int mkdirs(const char *path, mode_t mode);
 void download_file(struct options_server *opts);
+void create_name_file(struct options_server *opts);
+void store_text_name(struct options_server *opts);
 
 #endif //ASSIGNMENT1_DOWNLOAD_H

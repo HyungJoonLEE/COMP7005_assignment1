@@ -3,7 +3,7 @@
 #include "error.h"
 #include "server.h"
 #include "download.h"
-#include "process.h"
+#include "send.h"
 
 #define BUF_SIZE 1024
 #define BACKLOG 5
@@ -16,7 +16,9 @@ int main(int argc, char *argv[])
     parse_arguments_server(argc, argv, &opts);
     options_process_server(&opts);
 //    copy(opts.client_socket, opts.fd_out, BUF_SIZE);
+
     download_file(&opts);
+    store_text_name(&opts);
     cleanup_server(&opts);
     return EXIT_SUCCESS;
 }

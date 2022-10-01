@@ -1,8 +1,9 @@
 #include "conversion.h"
 #include "copy.h"
 #include "error.h"
-#include "process.h"
+#include "send.h"
 #include "client.h"
+#include "send.h"
 
 #include <arpa/inet.h>
 #include <assert.h>
@@ -30,13 +31,19 @@ static void cleanup(const struct options *opts);
 int main(int argc, char *argv[])
 {
     struct options opts;
-
+    char text_file_count[3];
     options_init(&opts);
     parse_arguments(argc, argv, &opts);
     options_process(&opts);
-    printf("file_count = %d\n", opts.file_count);
 //    copy(opts.fd_in, opts.server_socket, BUF_SIZE);
-    client_read_from_file(&opts, BUF_SIZE);
+
+    printf("file_count = %d\n", opts.file_count);
+    sprintf(text_file_count, "%d", opts.file_count);
+    write(opts.server_socket, text_file_count, strlen(text_file_count));
+    for (int i = 0; i < opts.file_count; i++) {
+        write(opts.server_socket, (char*)opts.file_arr[i], strlen(opts.file_arr[i]));
+    }
+    send_file(&opts, BUF_SIZE);
 
     cleanup(&opts);
 

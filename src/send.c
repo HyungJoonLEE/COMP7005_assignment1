@@ -1,131 +1,67 @@
 #include "send.h"
-#include "client.h"
-#include "common.h"
 #include "error.h"
-#include <arpa/inet.h>
-#include <assert.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 
-void send_file(struct options *opts) {
-    char* text_file_arr[15];
-    int count = files_parsing(opts->send_file_name, text_file_arr);
-    for (int i = 0; i < count; i++) {
-        printf("send file %d: %s\n", i, text_file_arr[i]);
-    }
+void send_file(struct options *opts, size_t count) {
+    char *buffer;
+    char buf[BUFSIZ];
 
-    if(opts->file_name)
-    {
-        opts->fd_in = open(opts->file_name, O_RDONLY);
+    buffer = malloc(count);
+    if(buffer == NULL) fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
 
-        if(opts->fd_in == -1)
-        {
-            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+
+    for (int i = 0; i < opts->file_count; i++) {
+        FILE *file;
+        unsigned long file_size, current_size = 0;
+
+        /**
+            Maybe I can send a name with '\0'  before read a file
+            In server side, when it hits '\0' count++
+                If count is even save as a file name
+                If count is odd save as a content
+         **/
+        file = fopen(opts->file_arr[i], "rb");
+        fseek(file, 0, SEEK_END);
+        file_size = (unsigned long) ftell(file);
+        fseek(file, 0, SEEK_SET);
+
+        while(current_size != file_size) {
+            unsigned long fp_size = fread(buf, 1, 256, file);
+            current_size += fp_size;
+            send(opts->server_socket, buf, fp_size, 0);
         }
+        fclose(file);
     }
-
-
-    if(opts->ip_out)
-    {
-        int result;
-        struct sockaddr_in server_address;
-
-        opts->fd_out = socket(AF_INET, SOCK_STREAM, 0);
-
-        if(opts->fd_out == -1)
-        {
-            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
-        }
-
-        server_address.sin_family = AF_INET;
-        server_address.sin_port = htons(opts->port_out);
-        server_address.sin_addr.s_addr = inet_addr(opts->ip_out);
-
-        if(server_address.sin_addr.s_addr ==  (in_addr_t)-1)
-        {
-            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
-        }
-
-        result = connect(opts->fd_out, (struct sockaddr *)&server_address, sizeof(struct sockaddr_in));
-
-        if(result == -1)
-        {
-            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
-        }
-    }
-
-    int server_soecket;
-    size_t fsize, nsize = 0;
-    size_t fsize2;
-    FILE *file = NULL;
-    char buf[1200];
-
-    /* 전송할 파일 이름을 작성합니다 */
-    file = fopen(text_file_arr[0], "rb");
-
-    /* 파일 크기 계산 */
-    // move file pointer to end
-    fseek(file, 0, SEEK_END);
-    // calculate file size
-    fsize = ftell(file);
-    // move file pointer to first
-    fseek(file, 0, SEEK_SET);
-
-    // send file size first
-    // fsize2 = htonl(fsize);
-    // send file size
-    // send(serv_sock, &fsize2, sizeof(fsize), 0);
-
-    // send file contents
-    while (nsize!=fsize) {
-        // read from file to buf
-        // 1byte * 256 count = 256byte => buf[256];
-        int fpsize = fread(buf, 1, 256, file);
-        nsize += fpsize;
-        send(server_soecket, buf, fpsize, 0);
-    }
-
-    fclose(file);
-//    close(server_soecket);
+    close(opts->server_socket);
 }
 
 
-int files_parsing(char* user_file, char** text_file_arr) {
-    int num = 1;
-    printf("%s", user_file);
+void save_text_name(int from_fd, int to_fd, size_t count)
+{
+    char *buffer;
+    ssize_t rbytes;
 
-    /**
-    if (strcmp(user_file, "*.txt") == 0) {
-        // do check files in system
-    }
-    */
+    buffer = malloc(count);
 
-
-    int count = 0;
-    char* ptr = strtok(user_file, " ");
-    count++;
-    while (ptr != NULL) {
-        ptr = strtok(NULL, " ");
-        count++;
+    if(buffer == NULL)
+    {
+        fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
     }
 
+    while((rbytes = read(from_fd, buffer, count)) > 0) {
+        ssize_t wbytes;
+        wbytes = write(to_fd, buffer, rbytes);
 
-    char* text_file = strtok(user_file, " ");
-    text_file_arr[0] = text_file;
-    if (count != 1) {
-        for (int i = 1; i < count; i++) {
-            text_file = strtok(NULL, " ");
-            text_file_arr[i] = text_file;
+        if(wbytes == -1)
+        {
+            fatal_errno(__FILE__, __func__ , __LINE__, errno, 4);
         }
     }
-    for (int i = 0; i < count; i++) {
-        printf("%d : %s\n", i, text_file_arr[i]);
+
+    if(rbytes == -1)
+    {
+        fatal_errno(__FILE__, __func__ , __LINE__, errno, 3);
     }
-    return count;
+
+    free(buffer);
 }

@@ -26,6 +26,7 @@ struct options
     int fd_in2;
     int fd_out;
     int server_socket;
+    int server_socket2;
     char* file_arr[100];
     int file_count;
     char send_file_name[100];
