@@ -15,7 +15,7 @@
 #include <ctype.h>
 
 #define DEFAULT_PORT 5000
-#define DEFAULT_DIRECTORY "./server"
+#define DEFAULT_DIRECTORY ".."
 
 struct options_server
 {
