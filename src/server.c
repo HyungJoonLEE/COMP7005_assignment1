@@ -4,6 +4,12 @@
 #include "server.h"
 #include "download.h"
 #include "send.h"
+#include <linux/if.h>
+#include <net/if.h>
+
+
+
+
 
 #define BUF_SIZE 1024
 #define BACKLOG 5
@@ -25,18 +31,24 @@ int main(int argc, char *argv[])
 
 static void options_init_server(struct options_server *opts)
 {
+    memset(opts, 0, sizeof(struct options));
+    opts->fd_in    = STDIN_FILENO;
+    opts->port_in  = DEFAULT_PORT;
+    strcpy(opts->directory, DEFAULT_DIRECTORY);
+    opts->port_in  = DEFAULT_PORT;
     int fd;
     struct ifreq ifr;
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     ifr.ifr_addr.sa_family = AF_INET;
-    snprintf(ifr.ifr_name, IFNAMSIZ, "en0");
+    strncpy(ifr.ifr_name, "enp0s5", IF_NAMESIZE);
     ioctl(fd, SIOCGIFADDR, &ifr);
     printf("%s\n", inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
     memset(opts, 0, sizeof(struct options_server));
 
     // DEFAULT SETTINGS FOR OPTION
-    opts->ip_in   = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+    opts->ip_in = malloc(sizeof(char) * strlen(inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr)));
+    strcpy(opts->ip_in,  inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
     opts->fd_in   = STDOUT_FILENO;
     strcpy(opts->directory, DEFAULT_DIRECTORY);
     printf("default directory: %s\n", opts->directory);
@@ -82,21 +94,12 @@ static void parse_arguments_server(int argc, char *argv[], struct options_server
             };
         }
     }
-
-    if(optind < argc)
-    {
-        opts->file_name = argv[optind];
-    }
 }
 
 
 static void options_process_server(struct options_server *opts)
 {
     char* message="You are connected to server\n";
-    if(opts->file_name && opts->ip_in)
-    {
-        fatal_message(__FILE__, __func__ , __LINE__, "Can't pass -i and a filename", 2);
-    }
 
     if(opts->ip_in)
     {
@@ -165,12 +168,13 @@ static void cleanup_server(const struct options_server *opts)
     for (int i = 0; i < opts->file_count; i++) {
         free(opts->file_arr[i]);
     }
-    if(opts->file_name)
+//    if(opts->file_name)
+//    {
+//        close(opts->fd_in);
+//    }
+    if(opts->ip_in)
     {
-        close(opts->fd_in);
-    }
-    else if(opts->ip_in)
-    {
+        free(opts->ip_in);
         close(opts->fd_in);
         close(opts->server_socket);
     }
