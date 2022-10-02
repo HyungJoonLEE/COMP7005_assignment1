@@ -39,10 +39,10 @@ int main(int argc, char *argv[])
 
     printf("file_count = %d\n", opts.file_count);
     sprintf(text_file_count, "%d", opts.file_count);
-    write(opts.server_socket, text_file_count, strlen(text_file_count));
     for (int i = 0; i < opts.file_count; i++) {
         write(opts.server_socket, (char*)opts.file_arr[i], strlen(opts.file_arr[i]));
     }
+    write(opts.server_socket, "$$$$", 4);
     send_file(&opts, BUF_SIZE);
 
     cleanup(&opts);

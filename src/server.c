@@ -18,7 +18,8 @@ int main(int argc, char *argv[])
 //    copy(opts.client_socket, opts.fd_out, BUF_SIZE);
 
     download_file(&opts);
-    store_text_name(&opts);
+    get_text_name(&opts);
+    create_name_file(&opts);
     cleanup_server(&opts);
     return EXIT_SUCCESS;
 }
@@ -175,6 +176,9 @@ static void options_process_server(struct options_server *opts)
 
 static void cleanup_server(const struct options_server *opts)
 {
+    for (int i = 0; i < opts->file_count; i++) {
+        free(opts->file_arr[i]);
+    }
     if(opts->file_name)
     {
         close(opts->fd_in);

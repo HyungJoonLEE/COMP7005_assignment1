@@ -30,6 +30,7 @@ void send_file(struct options *opts, size_t count) {
             current_size += fp_size;
             send(opts->server_socket, buf, fp_size, 0);
         }
+        write(opts->server_socket, "$$$$", strlen("$$$$"));
         fclose(file);
     }
     close(opts->server_socket);

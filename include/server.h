@@ -34,6 +34,7 @@ struct options_server
     int server_socket;
     int client_socket;
     char* file_arr[50];
+    int file_count;
 };
 
 

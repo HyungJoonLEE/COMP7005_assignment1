@@ -2,6 +2,8 @@
 #include "download.h"
 #include "error.h"
 #include "send.h"
+#include "regex.h"
+
 
 
 
@@ -13,15 +15,14 @@ void download_file(struct options_server *opts) {
     FILE *file = NULL;
 
 
-    file = fopen("total", "wb");
+    file = fopen("total.txt", "wb");
     bufsize = 256;
 
-    while (/*filesize != 0*/nbyte != 0) {
-        //if(filesize < 256) bufsize = filesize;
+    while (nbyte != 0) {
         nbyte = recv(opts->client_socket, received_content, bufsize, 0);
         fwrite(received_content, sizeof(char), (unsigned long) nbyte, file);
-        //nbyte = 0;
     }
+    fclose(file);
 }
 
 
@@ -56,36 +57,79 @@ int mkdirs(const char *path, mode_t mode) {
 }
 
 
-void create_name_file(struct options_server *opts) {
-    ssize_t nbyte = 256;
-    char received_content[BUFSIZ];
-    size_t bufsize = 0;
-    FILE *file = NULL;
+void get_text_name(struct options_server *opts) {
+    const char* filename = "total.txt";
+    char storage[30000];
+
+    FILE* fp = fopen(filename, "rb");
+    if (!fp) {
+        perror("fopen");
+        exit(EXIT_FAILURE);
+    }
+
+    struct stat sb;
+    if (stat(filename, &sb) == -1) {
+        perror("stat");
+        exit(EXIT_FAILURE);
+    }
+
+    char* file_contents = malloc((unsigned long) sb.st_size);
+    fread(file_contents, (unsigned long) sb.st_size, 1, fp);
+    printf("%s\n", file_contents);
 
 
-    file = fopen("name.txt", "wb");
-    bufsize = 256;
+    int count = 0;
+    strcpy(storage, file_contents);
+    char *first_line = strtok(storage, "$$$$");
+//    printf("%s\n", first_line);
 
-    nbyte = recv(opts->client_socket, received_content, bufsize, 0);
-    fwrite(received_content, sizeof(char), (unsigned long) nbyte, file);
-}
-
-
-void store_text_name(struct options_server *opts) {
-    FILE* fp = fopen("total.txt", "r");
-    char buffer[100] = { 0, };
-    fread(buffer, 1, sizeof(buffer), fp);
-    printf("%s", buffer);
-
-
-//    char *ptr = strtok(buffer, " ");
-//    while (ptr != NULL)
-//    {
+    char* ptr;
+    char* temp[50];
+    ptr = strtok(first_line, ".txt");
+    while (ptr != NULL) {
 //        printf("%s\n", ptr);
-//        ptr = strtok(NULL, " ");
+        temp[count] = malloc(sizeof(char) * strlen(ptr) + 4);
+        strcpy(temp[count], ptr);
+        strcat(temp[count], ".txt");
+        opts->file_arr[count] = malloc(sizeof(char) * strlen(temp[count]));
+        strcpy(opts->file_arr[count], temp[count]);
+        free(temp[count]);
+        count++;
+        ptr = strtok(NULL, ".txt");
+    }
+
+//    opts->file_count = count;
+//
+//    for (int i = 0; i < opts->file_count; i++) {
+//        printf("%s\n", opts->file_arr[i]);
 //    }
+
+
+    free(file_contents);
     fclose(fp);
 }
 
+
+void create_name_file(struct options_server *opts) {
+    const char* filename = "total.txt";
+    char storage[30000];
+
+    FILE* fp = fopen(filename, "rb");
+    if (!fp) {
+        perror("fopen");
+        exit(EXIT_FAILURE);
+    }
+
+    struct stat sb;
+    if (stat(filename, &sb) == -1) {
+        perror("stat");
+        exit(EXIT_FAILURE);
+    }
+
+    char* file_contents = malloc((unsigned long) sb.st_size);
+    fread(file_contents, (unsigned long) sb.st_size, 1, fp);
+    printf("%s\n", file_contents);
+
+}
 
 
