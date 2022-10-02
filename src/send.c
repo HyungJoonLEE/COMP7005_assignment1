@@ -12,6 +12,9 @@ void send_file(struct options *opts, size_t count) {
 
     for (int i = 0; i < opts->file_count; i++) {
         FILE *file;
+        write(opts->server_socket, (char*)opts->file_arr[i], strlen(opts->file_arr[i]));
+        write(opts->server_socket, "ㅇ", strlen("ㅇ"));
+
         unsigned long file_size, current_size = 0;
 
         file = fopen(opts->file_arr[i], "rb");
@@ -24,7 +27,7 @@ void send_file(struct options *opts, size_t count) {
             current_size += fp_size;
             send(opts->server_socket, buf, fp_size, 0);
         }
-        write(opts->server_socket, "$$$$", strlen("$$$$"));
+        write(opts->server_socket, "ㅇ", strlen("ㅇ"));
         fclose(file);
     }
     close(opts->server_socket);

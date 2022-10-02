@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
+#include <dirent.h>
 
 #define BUF_SIZE 1024
 #define DEFAULT_PORT 5000
@@ -29,13 +31,14 @@ struct options
     int file_count;
 };
 
-
+typedef struct _finddata_t  FILE_SEARCH;
 
 
 static void options_init(struct options *opts);
 static void parse_arguments(int argc, char *argv[], struct options *opts);
 static void options_process(struct options *opts);
 static void cleanup(const struct options *opts);
+void get_file_list(struct options *opts);
 
 
 #endif //ASSIGNMENT1_CLIENT_H

@@ -10,7 +10,7 @@
 void download_file(struct options_server *opts) {
 
     ssize_t nbyte = 256;
-    char received_content[BUFSIZ];
+    char received_content[BUF_SIZE];
     size_t filesize = 0, bufsize = 0;
     FILE *file = NULL;
 
@@ -57,9 +57,9 @@ int mkdirs(const char *path, mode_t mode) {
 }
 
 
-void get_text_name(struct options_server *opts) {
+void save_file(struct options_server *opts) {
     const char* filename = "total.txt";
-    char storage[30000];
+    char *storage;
 
     FILE* fp = fopen(filename, "rb");
     if (!fp) {
@@ -75,88 +75,47 @@ void get_text_name(struct options_server *opts) {
 
     char* file_contents = malloc((unsigned long) sb.st_size);
     fread(file_contents, (unsigned long) sb.st_size, 1, fp);
-//    printf("%s\n", file_contents);
 
 
     int count = 0;
+    storage = malloc(sizeof(char) * strlen(file_contents));
     strcpy(storage, file_contents);
-    char *first_line = strtok(storage, "$$$$");
-//    printf("%s\n", first_line);
 
     char* ptr;
-    char* temp[50];
-    ptr = strtok(first_line, ".txt");
-    while (ptr != NULL) {
-//        printf("%s\n", ptr);
-        temp[count] = malloc(sizeof(char) * strlen(ptr) + 4);
-        strcpy(temp[count], ptr);
-        strcat(temp[count], ".txt");
-        opts->file_arr[count] = malloc(sizeof(char) * strlen(temp[count]));
-        strcpy(opts->file_arr[count], temp[count]);
-        free(temp[count]);
-        count++;
-        ptr = strtok(NULL, ".txt");
-    }
-
-    opts->file_count = count;
-//
-//    for (int i = 0; i < opts->file_count; i++) {
-//        printf("%s\n", opts->file_arr[i]);
-//    }
-
-
-    free(file_contents);
-    fclose(fp);
-}
-
-
-void create_name_file(struct options_server *opts) {
-    const char* filename = "total.txt";
-    char storage[30000];
+    char temp[50];
+    ptr = strtok(file_contents, "ㅇ");
     FILE* text_file = NULL;
-    int index = 0;
-    struct stat sb;
-    char* ptr;
-
-
-    FILE* fp = fopen(filename, "rb");
-    if (!fp) {
-        perror("fopen");
-        exit(EXIT_FAILURE);
-    }
-
-    if (stat(filename, &sb) == -1) {
-        perror("stat");
-        exit(EXIT_FAILURE);
-    }
-
-    char* file_contents = malloc((unsigned long) sb.st_size);
-    fread(file_contents, (unsigned long) sb.st_size, 1, fp);
-//    printf("%s\n", file_contents);
-
-    strcpy(storage, file_contents);
-//    printf("%s\n", storage);
-
-
-    ptr = strtok(storage, "$$$$");
 
     while (ptr != NULL) {
 //        printf("%s\n", ptr);
-//        printf("=====================\n");
-        if (index == opts->file_count) break;
-        ptr = strtok(NULL, "$$$$");
-
-        text_file = fopen(opts->file_arr[index], "w");
+        strcpy(temp, ptr);
+        opts->file_arr[count] = malloc(sizeof(char) * strlen(temp));
+        strcpy(opts->file_arr[count], temp);
+        ptr = strtok(NULL, "ㅇ");
+        text_file = fopen(opts->file_arr[count], "w");
         if (!text_file) {
             perror("fopen");
             exit(EXIT_FAILURE);
         }
         fwrite(ptr, strlen(ptr), 1, text_file);
         fclose(text_file);
-        index++;
+        count++;
+        ptr = strtok(NULL, "ㅇ");
     }
+
+    opts->file_count = count;
+
+//    for (int i = 0; i < opts->file_count; i++) {
+//        printf("%s\n", opts->file_arr[i]);
+//    }
+
+    free(storage);
+    free(file_contents);
+    fclose(fp);
     remove_file(opts->directory);
 }
+
+
 
 void remove_file(char* directory) {
     chdir(directory);

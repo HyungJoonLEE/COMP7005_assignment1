@@ -37,10 +37,10 @@ int main(int argc, char *argv[])
     options_process(&opts);
 //    copy(opts.fd_in, opts.server_socket, BUF_SIZE);
     sprintf(text_file_count, "%d", opts.file_count);
-    for (int i = 0; i < opts.file_count; i++) {
-        write(opts.server_socket, (char*)opts.file_arr[i], strlen(opts.file_arr[i]));
-    }
-    write(opts.server_socket, "$$$$", 4);
+//    for (int i = 0; i < opts.file_count; i++) {
+//        write(opts.server_socket, (char*)opts.file_arr[i], strlen(opts.file_arr[i]));
+//    }
+//    write(opts.server_socket, "ㅇ", strlen("ㅇ"));
     send_file(&opts, BUF_SIZE);
     cleanup(&opts);
     return EXIT_SUCCESS;
@@ -94,10 +94,16 @@ static void parse_arguments(int argc, char *argv[], struct options *opts)
 
     if(optind < argc) {
         int i = 0;
-        while (argv[optind + i] != NULL){
-            opts->file_arr[i] = argv[optind + i];
-            i++;
+        if (strcmp(argv[optind + i], "*.txt") == 0) {
+            get_file_list(opts);
         }
+        else {
+            while (argv[optind + i] != NULL){
+                opts->file_arr[i] = argv[optind + i];
+                i++;
+            }
+        }
+
         opts->file_count = i;
     }
 }
@@ -158,5 +164,27 @@ static void cleanup(const struct options *opts)
     if(opts->ip_out)
     {
         close(opts->fd_out);
+    }
+}
+
+
+void get_file_list(struct options *opts) {
+
+    DIR *p;
+    struct dirent *pp;
+    p = opendir ("./");
+    int i = 0;
+    if (p != NULL)
+    {
+        while ((pp = readdir (p))!=NULL) {
+            unsigned long length = strlen(pp->d_name);
+            if (strncmp(pp->d_name + length - 4, ".txt", 4) == 0) {
+                opts->file_arr[i] = pp->d_name;
+                printf("%s\n", opts->file_arr[i]);
+                i++;
+            }
+        }
+
+        (void) closedir (p);
     }
 }

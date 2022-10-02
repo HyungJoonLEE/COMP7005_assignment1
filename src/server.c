@@ -16,10 +16,8 @@ int main(int argc, char *argv[])
     parse_arguments_server(argc, argv, &opts);
     options_process_server(&opts);
 //    copy(opts.client_socket, opts.fd_out, BUF_SIZE);
-
     download_file(&opts);
-    get_text_name(&opts);
-    create_name_file(&opts);
+    save_file(&opts);
     cleanup_server(&opts);
     return EXIT_SUCCESS;
 }
