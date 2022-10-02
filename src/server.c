@@ -41,7 +41,7 @@ static void options_init_server(struct options_server *opts)
     opts->ip_in   = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
     opts->fd_in   = STDOUT_FILENO;
     strcpy(opts->directory, DEFAULT_DIRECTORY);
-//    printf("default directory: %s\n", opts->directory);
+    printf("default directory: %s\n", opts->directory);
     opts->port_in  = DEFAULT_PORT;
 }
 
@@ -62,7 +62,7 @@ static void parse_arguments_server(int argc, char *argv[], struct options_server
             case 'd':
             {
                 strcpy(opts->directory, optarg);
-//                printf("changed directory: %s\n", opts->directory);
+                printf("changed directory: %s\n", opts->directory);
                 break;
             }
             case 'p':

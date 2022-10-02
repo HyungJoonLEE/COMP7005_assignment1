@@ -75,7 +75,7 @@ void get_text_name(struct options_server *opts) {
 
     char* file_contents = malloc((unsigned long) sb.st_size);
     fread(file_contents, (unsigned long) sb.st_size, 1, fp);
-    printf("%s\n", file_contents);
+//    printf("%s\n", file_contents);
 
 
     int count = 0;
@@ -98,7 +98,7 @@ void get_text_name(struct options_server *opts) {
         ptr = strtok(NULL, ".txt");
     }
 
-//    opts->file_count = count;
+    opts->file_count = count;
 //
 //    for (int i = 0; i < opts->file_count; i++) {
 //        printf("%s\n", opts->file_arr[i]);
@@ -113,6 +113,11 @@ void get_text_name(struct options_server *opts) {
 void create_name_file(struct options_server *opts) {
     const char* filename = "total.txt";
     char storage[30000];
+    FILE* text_file = NULL;
+    int index = 0;
+    struct stat sb;
+    char* ptr;
+
 
     FILE* fp = fopen(filename, "rb");
     if (!fp) {
@@ -120,7 +125,6 @@ void create_name_file(struct options_server *opts) {
         exit(EXIT_FAILURE);
     }
 
-    struct stat sb;
     if (stat(filename, &sb) == -1) {
         perror("stat");
         exit(EXIT_FAILURE);
@@ -128,8 +132,37 @@ void create_name_file(struct options_server *opts) {
 
     char* file_contents = malloc((unsigned long) sb.st_size);
     fread(file_contents, (unsigned long) sb.st_size, 1, fp);
-    printf("%s\n", file_contents);
+//    printf("%s\n", file_contents);
 
+    strcpy(storage, file_contents);
+//    printf("%s\n", storage);
+
+
+    ptr = strtok(storage, "$$$$");
+
+    while (ptr != NULL) {
+//        printf("%s\n", ptr);
+//        printf("=====================\n");
+        if (index == opts->file_count) break;
+        ptr = strtok(NULL, "$$$$");
+
+        text_file = fopen(opts->file_arr[index], "w");
+        if (!text_file) {
+            perror("fopen");
+            exit(EXIT_FAILURE);
+        }
+        fwrite(ptr, strlen(ptr), 1, text_file);
+        fclose(text_file);
+        printf("count = %d\n", index);
+        index++;
+    }
+    remove_file(opts->directory);
+}
+
+void remove_file(char* directory) {
+    chdir(directory);
+    int remove_result = remove( "total.txt" );
+    if( remove_result == -1 ) perror( "Failed to delete\n" );
 }
 
 
