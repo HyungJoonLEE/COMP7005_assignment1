@@ -1,6 +1,3 @@
-//
-// Created by Hyung Joon Lee on 2022-09-27.
-//
 #ifndef ASSIGN1_SERVER_H
 #define ASSIGN1_SERVER_H
 
@@ -18,8 +15,7 @@
 #include <ctype.h>
 
 #define DEFAULT_PORT 5000
-#define DEFAULT_DIRECTORY "~/server"
-#define INVALID 0
+#define DEFAULT_DIRECTORY "./server"
 
 struct options_server
 {
@@ -28,9 +24,6 @@ struct options_server
     in_port_t port_in;
     char directory[50];
     int fd_in;
-    int fd_in2;
-    int fd_out;
-    int fd_source;
     int server_socket;
     int client_socket;
     char* file_arr[50];

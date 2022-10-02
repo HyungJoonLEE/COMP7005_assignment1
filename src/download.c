@@ -153,7 +153,6 @@ void create_name_file(struct options_server *opts) {
         }
         fwrite(ptr, strlen(ptr), 1, text_file);
         fclose(text_file);
-        printf("count = %d\n", index);
         index++;
     }
     remove_file(opts->directory);

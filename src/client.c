@@ -36,17 +36,13 @@ int main(int argc, char *argv[])
     parse_arguments(argc, argv, &opts);
     options_process(&opts);
 //    copy(opts.fd_in, opts.server_socket, BUF_SIZE);
-
-    printf("file_count = %d\n", opts.file_count);
     sprintf(text_file_count, "%d", opts.file_count);
     for (int i = 0; i < opts.file_count; i++) {
         write(opts.server_socket, (char*)opts.file_arr[i], strlen(opts.file_arr[i]));
     }
     write(opts.server_socket, "$$$$", 4);
     send_file(&opts, BUF_SIZE);
-
     cleanup(&opts);
-
     return EXIT_SUCCESS;
 }
 
@@ -96,24 +92,18 @@ static void parse_arguments(int argc, char *argv[], struct options *opts)
         }
     }
 
-    if(optind < argc)
-    {
+    if(optind < argc) {
         int i = 0;
         while (argv[optind + i] != NULL){
             opts->file_arr[i] = argv[optind + i];
             i++;
         }
         opts->file_count = i;
-
-//        for (int j = 0; j < 2; j++) {
-//            printf("optind %d: %s\n", j, opts->file_arr[j]);
-//        }
     }
 }
 
 
-static void options_process(struct options *opts)
-{
+static void options_process(struct options *opts) {
     ssize_t server_connection_test_fd;
     char message[30];
     if(opts->file_name)

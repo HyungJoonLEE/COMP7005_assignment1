@@ -23,13 +23,10 @@ struct options
     char *ip_out;
     in_port_t port_out;
     int fd_in;
-    int fd_in2;
     int fd_out;
     int server_socket;
-    int server_socket2;
     char* file_arr[50];
     int file_count;
-    char send_file_name[100];
 };
 
 

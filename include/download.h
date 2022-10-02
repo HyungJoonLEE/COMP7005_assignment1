@@ -17,9 +17,7 @@
 #include <sys/types.h>
 #include "server.h"
 
-#define MAX_BUFFER	1024
 #define BACKLOG 5
-#define MAXBUF 1300
 
 int mkdirs(const char *path, mode_t mode);
 void download_file(struct options_server *opts);

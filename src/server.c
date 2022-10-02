@@ -62,7 +62,6 @@ static void parse_arguments_server(int argc, char *argv[], struct options_server
             case 'd':
             {
                 strcpy(opts->directory, optarg);
-                printf("changed directory: %s\n", opts->directory);
                 break;
             }
             case 'p':
@@ -100,16 +99,6 @@ static void options_process_server(struct options_server *opts)
     {
         fatal_message(__FILE__, __func__ , __LINE__, "Can't pass -i and a filename", 2);
     }
-
-//    if(opts->file_name)
-//    {
-//        opts->fd_in = open(opts->file_name, O_RDONLY);
-//
-//        if(opts->fd_in == -1)
-//        {
-//            fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
-//        }
-//    }
 
     if(opts->ip_in)
     {
@@ -157,19 +146,18 @@ static void options_process_server(struct options_server *opts)
 
         opts->client_socket = accept(opts->server_socket, (struct sockaddr*)&client_address, &client_address_size);
 
-//        if(opts->fd_in == -1 || opts->client_socket == -1)
         if(opts->client_socket == -1)
         {
             fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
         }
         write(opts->client_socket, message, strlen(message));
 
-        printf("New Client Connect: %s\n", inet_ntoa(client_address.sin_addr));
+        printf("===== [New Client Connect] : %s ======\n", inet_ntoa(client_address.sin_addr));
 
         strcat(opts->directory, dir_divider);
         strcat(opts->directory, inet_ntoa(client_address.sin_addr));
         mkdirs(opts->directory, 0776);
-        if(chdir(opts->directory) == 0) printf("Directory changed to %s\n", opts->directory);
+        if(chdir(opts->directory) == 0) printf("Directory changed => %s\n", opts->directory);
     }
 }
 
