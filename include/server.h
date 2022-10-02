@@ -22,7 +22,8 @@ struct options_server
     char* file_name;
     char* ip_in;
     in_port_t port_in;
-    char directory[50];
+    char directory[100];
+    char origin_directory[100];
     int fd_in;
     int server_socket;
     int client_socket[5];

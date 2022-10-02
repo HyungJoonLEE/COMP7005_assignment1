@@ -73,6 +73,7 @@ static void parse_arguments_server(int argc, char *argv[], struct options_server
             case 'd':
             {
                 strcpy(opts->directory, optarg);
+                strcpy(opts->origin_directory, optarg);
                 break;
             }
             case 'p':
@@ -177,7 +178,7 @@ static void options_process_server(struct options_server *opts)
                        "Socket fd : %d\n"
                        "ip : %s\n"
                        "port : %d\n", new_socket, inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
-
+                strcpy(opts->directory, opts->origin_directory);
                 strcat(opts->directory, dir_divider);
                 strcat(opts->directory, inet_ntoa(client_address.sin_addr));
                 mkdirs(opts->directory, 0776);
@@ -196,6 +197,7 @@ static void options_process_server(struct options_server *opts)
             }
             download_file(opts);
             save_file(opts);
+            chdir(opts->origin_directory);
 
             for (int i = 0; i < 5; i++) {
                 sd = opts->client_socket[i];
