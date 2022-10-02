@@ -25,9 +25,10 @@ struct options_server
     char directory[50];
     int fd_in;
     int server_socket;
-    int client_socket;
+    int client_socket[5];
     char* file_arr[50];
     int file_count;
+    int active_sd;
 };
 
 

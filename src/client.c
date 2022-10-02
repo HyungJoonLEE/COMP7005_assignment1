@@ -24,7 +24,6 @@ static void options_process(struct options *opts);
 static void cleanup(const struct options *opts);
 
 
-#define BUF_SIZE 1024
 #define DEFAULT_PORT 5000
 #define BACKLOG 5
 

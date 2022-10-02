@@ -2,7 +2,6 @@
 #include "download.h"
 #include "error.h"
 #include "send.h"
-#include "regex.h"
 
 
 
@@ -19,7 +18,7 @@ void download_file(struct options_server *opts) {
     bufsize = 256;
 
     while (nbyte != 0) {
-        nbyte = recv(opts->client_socket, received_content, bufsize, 0);
+        nbyte = recv(opts->active_sd, received_content, bufsize, 0);
         fwrite(received_content, sizeof(char), (unsigned long) nbyte, file);
     }
     fclose(file);
