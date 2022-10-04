@@ -2,26 +2,59 @@
 #include "download.h"
 #include "error.h"
 #include "send.h"
+#include "common.h"
 
 
+void send_confirm_message(struct options_server *opts) {
+    char message[7] = "confirm";
+    message[7] = '\0';
+    write(opts->active_sd, message, strlen(message));
+}
 
+
+void get_number_of_file(struct options_server *opts) {
+    char message[4];
+    char *ptr = NULL;
+    while(TRUE) {
+        read(opts->active_sd, message, strlen(message));
+        opts->file_count = (int)strtol(message, &ptr, 10);
+        printf("server file count = %d\n", opts->file_count);
+        return;
+    }
+}
 
 void download_file(struct options_server *opts) {
 
     ssize_t nbyte = 256;
     char received_content[BUF_SIZE];
+    char message[100];
     size_t filesize = 0, bufsize = 0;
+    unsigned long current_size = 0;
     FILE *file = NULL;
 
 
-    file = fopen("total.txt", "wb");
     bufsize = 256;
+    int i = 0;
 
     while (nbyte != 0) {
+        ntohl(filesize);
+        recv(opts->active_sd, &filesize, sizeof(filesize), 0);
+        printf("file size = %ld | nbyte = %d\n", filesize, nbyte);
         nbyte = recv(opts->active_sd, received_content, bufsize, 0);
-        fwrite(received_content, sizeof(char), (unsigned long) nbyte, file);
+
+//        if (strstr(received_content, ".txt") != NULL) {
+//            printf("text name = %s\n", received_content);
+//            opts->file_arr[i] = malloc(sizeof(char) * strlen(received_content));
+//            strcpy(opts->file_arr[i], received_content);
+//            printf("this is file = %s\n", opts->file_arr[i]);
+//            file = fopen(opts->file_arr[i], "wb");
+//            i++;
+//        }
+//        fwrite(received_content, sizeof(char), (unsigned long) nbyte, file);
+//        printf("%s\n", received_content);
+//        printf("=======256=======\n");
     }
-    fclose(file);
+
 }
 
 

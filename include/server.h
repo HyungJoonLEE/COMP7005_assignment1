@@ -14,7 +14,7 @@
 #include <sys/ioctl.h>
 #include <ctype.h>
 
-#define DEFAULT_PORT 5000
+//#define DEFAULT_PORT "5000"
 #define DEFAULT_DIRECTORY ".."
 
 struct options_server
@@ -27,7 +27,7 @@ struct options_server
     int fd_in;
     int server_socket;
     int client_socket[5];
-    char* file_arr[50];
+    char* file_arr[200];
     int file_count;
     int active_sd;
 };

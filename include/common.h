@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with dc_dump.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+#define BUF_SIZE 1024
 #define TRUE 1
 #define FALSE 0
 /**

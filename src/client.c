@@ -30,17 +30,25 @@ static void cleanup(const struct options *opts);
 int main(int argc, char *argv[])
 {
     struct options opts;
-    char text_file_count[3];
+    ssize_t server_confirm_fd;
+    char confirm[7];
+    confirm[7] = '\0';
     options_init(&opts);
     parse_arguments(argc, argv, &opts);
     options_process(&opts);
 //    copy(opts.fd_in, opts.server_socket, BUF_SIZE);
-    sprintf(text_file_count, "%d", opts.file_count);
+//    sprintf(text_file_count, "%d", opts.file_count);
+    printf("file count = %d\n", opts.file_count);
+//    send_number_of_file(&opts);
+//    server_confirm_fd = read(opts.server_socket, confirm, sizeof(confirm));
+//    if (server_confirm_fd == -1) printf("Server didn't get your FILE COUNT\n");
+//    else printf("SERVER: %s \n", confirm);
+
 //    for (int i = 0; i < opts.file_count; i++) {
 //        write(opts.server_socket, (char*)opts.file_arr[i], strlen(opts.file_arr[i]));
 //    }
 //    write(opts.server_socket, "ㅇ", strlen("ㅇ"));
-    send_file(&opts, BUF_SIZE);
+//    send_file(&opts, BUF_SIZE);
     cleanup(&opts);
     return EXIT_SUCCESS;
 }
@@ -110,7 +118,8 @@ static void parse_arguments(int argc, char *argv[], struct options *opts)
 
 static void options_process(struct options *opts) {
     ssize_t server_connection_test_fd;
-    char message[30];
+    char message[27];
+    message[27] = '\0';
     if(opts->file_name)
     {
         opts->fd_in = open(opts->file_name, O_RDONLY);
@@ -149,7 +158,7 @@ static void options_process(struct options *opts) {
         {
             fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
         }
-        server_connection_test_fd = read(opts->server_socket, message, sizeof(message) - 1);
+        server_connection_test_fd = read(opts->server_socket, message, sizeof(message));
         if(server_connection_test_fd == -1) {
             printf("You are not connected to server\n");
         }

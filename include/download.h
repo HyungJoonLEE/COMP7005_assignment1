@@ -18,8 +18,11 @@
 #include "server.h"
 
 #define BACKLOG 5
+#define BUF_SIZE 1024
 
+void send_confirm_message(struct options_server *opts);
 int mkdirs(const char *path, mode_t mode);
+void get_number_of_file(struct options_server *opts);
 void download_file(struct options_server *opts);
 void save_file(struct options_server *opts);
 void remove_file(char* directory);
