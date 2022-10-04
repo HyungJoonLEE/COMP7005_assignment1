@@ -194,10 +194,10 @@ static void options_process_server(struct options_server *opts)
                         break;
                     }
                 }
+                download_file(opts);
+                save_file(opts);
+                chdir(opts->origin_directory);
             }
-            download_file(opts);
-            save_file(opts);
-            chdir(opts->origin_directory);
 
             for (int i = 0; i < 5; i++) {
                 sd = opts->client_socket[i];
