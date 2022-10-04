@@ -15,7 +15,7 @@
 #include <dirent.h>
 
 #define BUF_SIZE 1024
-#define DEFAULT_PORT 5000
+#define DEFAULT_PORT 4000
 
 
 

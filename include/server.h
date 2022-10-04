@@ -14,17 +14,16 @@
 #include <sys/ioctl.h>
 #include <ctype.h>
 
-#define DEFAULT_PORT 5000
-#define DEFAULT_DIRECTORY ".."
+#define DEFAULT_PORT 4000
+#define DEFAULT_DIRECTORY "."
+#define BACKLOG 5
+
 
 struct options_server
 {
-    char* file_name;
-    char* ip_in;
     in_port_t port_in;
     char directory[100];
     char origin_directory[100];
-    int fd_in;
     int server_socket;
     int client_socket[5];
     char* file_arr[50];

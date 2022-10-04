@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 //    for (int i = 0; i < opts.file_count; i++) {
 //        write(opts.server_socket, (char*)opts.file_arr[i], strlen(opts.file_arr[i]));
 //    }
-//    write(opts.server_socket, "ㅇ", strlen("ㅇ"));
+    write(opts.server_socket, "ㅇ", strlen("ㅇ"));
     send_file(&opts, BUF_SIZE);
     cleanup(&opts);
     return EXIT_SUCCESS;
@@ -110,7 +110,8 @@ static void parse_arguments(int argc, char *argv[], struct options *opts)
 
 static void options_process(struct options *opts) {
     ssize_t server_connection_test_fd;
-    char message[30];
+    char message[27];
+    message[27] = '\0';
     if(opts->file_name)
     {
         opts->fd_in = open(opts->file_name, O_RDONLY);
@@ -149,7 +150,7 @@ static void options_process(struct options *opts) {
         {
             fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
         }
-        server_connection_test_fd = read(opts->server_socket, message, sizeof(message) - 1);
+        server_connection_test_fd = read(opts->server_socket, message, sizeof(message));
         if(server_connection_test_fd == -1) {
             printf("You are not connected to server\n");
         }

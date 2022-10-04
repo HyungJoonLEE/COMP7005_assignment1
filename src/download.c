@@ -4,21 +4,17 @@
 #include "send.h"
 
 
-
-
 void download_file(struct options_server *opts) {
 
-    ssize_t nbyte = 256;
+    ssize_t nbyte = 1;
     char received_content[BUF_SIZE];
-    size_t filesize = 0, bufsize = 0;
     FILE *file = NULL;
 
 
     file = fopen("total.txt", "wb");
-    bufsize = 256;
 
     while (nbyte != 0) {
-        nbyte = recv(opts->active_sd, received_content, bufsize, 0);
+        nbyte = read(opts->active_sd, received_content, sizeof(received_content));
         fwrite(received_content, sizeof(char), (unsigned long) nbyte, file);
     }
     fclose(file);
@@ -98,6 +94,7 @@ void save_file(struct options_server *opts) {
         }
         fwrite(ptr, strlen(ptr), 1, text_file);
         fclose(text_file);
+        free(opts->file_arr[count]);
         count++;
         ptr = strtok(NULL, "ㅇ");
     }
