@@ -148,7 +148,8 @@ static void options_process_server(struct options_server *opts)
                    "port : %d\n", new_socket, inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
             directory = malloc(sizeof(char) * 100);
             strcpy(directory, opts->directory);
-            strcpy(directory, opts->origin_directory);
+            opts->origin_directory = malloc(sizeof(char) * 100);
+            strcpy(opts->origin_directory, directory);
             strcat(directory, dir_divider);
             strcat(directory, inet_ntoa(client_address.sin_addr));
             mkdirs(directory, 0776);
@@ -168,6 +169,7 @@ static void options_process_server(struct options_server *opts)
             save_file(opts);
             free(directory);
             chdir(opts->origin_directory);
+            free(opts->origin_directory);
         }
 
         for (int i = 0; i < 5; i++) {
