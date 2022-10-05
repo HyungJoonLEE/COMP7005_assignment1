@@ -29,8 +29,10 @@ int main(int argc, char *argv[])
 static void options_init_server(struct options_server *opts) {
     memset(opts, 0, sizeof(struct options_server));
     opts->port_in = DEFAULT_PORT;
+    opts->directory = malloc(sizeof(char) * 100);
+    opts->origin_directory = malloc(sizeof(char) * 100);
     strcpy(opts->directory, DEFAULT_DIRECTORY);
-    printf("default directory: %s\n", opts->directory);
+    printf("current directory: %s\n", opts->directory);
 }
 
 
@@ -45,7 +47,6 @@ static void parse_arguments_server(int argc, char *argv[], struct options_server
             case 'd':
             {
                 strcpy(opts->directory, optarg);
-                strcpy(opts->origin_directory, optarg);
                 break;
             }
             case 'p':
@@ -75,7 +76,6 @@ static void options_process_server(struct options_server *opts)
 {
     char message[27] = "You are connected to server";
     message[27] = '\0';
-    char* directory;
 
     struct sockaddr_in server_address;
     struct sockaddr_in client_address;
@@ -147,14 +147,12 @@ static void options_process_server(struct options_server *opts)
                    "Socket fd : %d\n"
                    "ip : %s\n"
                    "port : %d\n", new_socket, inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
-            directory = malloc(sizeof(char) * 100);
-            strcpy(directory, opts->directory);
-            opts->origin_directory = malloc(sizeof(char) * 100);
-            strcpy(opts->origin_directory, directory);
-            strcat(directory, dir_divider);
-            strcat(directory, inet_ntoa(client_address.sin_addr));
-            mkdirs(directory, 0776);
-            if (chdir(directory) == 0) printf("Directory changed => %s\n", directory);
+
+            strcpy(opts->origin_directory, opts->directory);
+            strcat(opts->directory, dir_divider);
+            strcat(opts->directory, inet_ntoa(client_address.sin_addr));
+            mkdirs(opts->directory, 0776);
+            if (chdir(opts->directory) == 0) printf("%s => %s\n", opts->origin_directory, opts->directory);
 
             if (send(new_socket, message, strlen(message), 0) != strlen(message)) perror("send : ");
 
@@ -166,9 +164,10 @@ static void options_process_server(struct options_server *opts)
                     break;
                 }
             }
+            printf("origin directory = %s\n", opts->origin_directory);
             download_file(opts);
             save_file(opts);
-            free(directory);
+            free(opts->directory);
             chdir(opts->origin_directory);
             free(opts->origin_directory);
         }
