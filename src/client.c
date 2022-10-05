@@ -1,10 +1,3 @@
-#include "conversion.h"
-#include "copy.h"
-#include "error.h"
-#include "send.h"
-#include "client.h"
-#include "send.h"
-
 #include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
@@ -14,17 +7,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "error.h"
+#include "conversion.h"
+#include "send.h"
+#include "client.h"
+#include "common.h"
 
 
-
-
-static void options_init(struct options *opts);
-static void parse_arguments(int argc, char *argv[], struct options *opts);
-static void options_process(struct options *opts);
-static void cleanup(const struct options *opts);
-
-
-#define BACKLOG 5
 
 int main(int argc, char *argv[])
 {
@@ -34,11 +23,6 @@ int main(int argc, char *argv[])
     parse_arguments(argc, argv, &opts);
     options_process(&opts);
 //    copy(opts.fd_in, opts.server_socket, BUF_SIZE);
-    sprintf(text_file_count, "%d", opts.file_count);
-//    for (int i = 0; i < opts.file_count; i++) {
-//        write(opts.server_socket, (char*)opts.file_arr[i], strlen(opts.file_arr[i]));
-//    }
-    write(opts.server_socket, "ㅇ", strlen("ㅇ"));
     send_file(&opts, BUF_SIZE);
     cleanup(&opts);
     return EXIT_SUCCESS;
@@ -169,21 +153,18 @@ static void cleanup(const struct options *opts)
 
 void get_file_list(struct options *opts) {
 
-    DIR *p;
-    struct dirent *pp;
-    p = opendir ("./");
+    DIR *directory_buffer;
+    struct dirent *files;
+    directory_buffer = opendir ("./");
     int i = 0;
-    if (p != NULL)
-    {
-        while ((pp = readdir (p))!=NULL) {
-            unsigned long length = strlen(pp->d_name);
-            if (strncmp(pp->d_name + length - 4, ".txt", 4) == 0) {
-                opts->file_arr[i] = pp->d_name;
-                printf("%s\n", opts->file_arr[i]);
+    if (directory_buffer != NULL) {
+        while ((files = readdir(directory_buffer))!=NULL) {
+            unsigned long length = strlen(files->d_name);
+            if (strncmp(files->d_name + length - 4, ".txt", 4) == 0) {
+                opts->file_arr[i] = files->d_name;
                 i++;
             }
         }
-
-        (void) closedir (p);
+        (void) closedir (directory_buffer);
     }
 }
