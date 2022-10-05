@@ -18,6 +18,7 @@
  *  along with dc_dump.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#define DEFAULT_PORT 4000
 #define TRUE 1
 #define FALSE 0
 /**

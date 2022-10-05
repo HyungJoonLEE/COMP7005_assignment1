@@ -14,7 +14,6 @@
 #include <sys/ioctl.h>
 #include <ctype.h>
 
-#define DEFAULT_PORT 4000
 #define DEFAULT_DIRECTORY "."
 #define BACKLOG 5
 

@@ -4,6 +4,7 @@
 #include "server.h"
 #include "download.h"
 #include "send.h"
+#include "common.h"
 //#include <linux/if.h>
 #include <sys/time.h>
 #include <net/if.h>
