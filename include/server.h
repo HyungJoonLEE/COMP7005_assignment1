@@ -21,7 +21,7 @@
 struct options_server
 {
     in_port_t port_in;
-    char* directory;
+    char directory[100];
     char* origin_directory;
     int server_socket;
     int client_socket[5];

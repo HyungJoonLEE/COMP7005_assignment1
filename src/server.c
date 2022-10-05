@@ -29,8 +29,6 @@ int main(int argc, char *argv[])
 static void options_init_server(struct options_server *opts) {
     memset(opts, 0, sizeof(struct options_server));
     opts->port_in = DEFAULT_PORT;
-    opts->directory = malloc(sizeof(char) * 100);
-    opts->origin_directory = malloc(sizeof(char) * 100);
     strcpy(opts->directory, DEFAULT_DIRECTORY);
     printf("current directory: %s\n", opts->directory);
 }
@@ -80,7 +78,6 @@ static void options_process_server(struct options_server *opts)
     struct sockaddr_in server_address;
     struct sockaddr_in client_address;
     socklen_t client_address_size;
-    int result;
     int option = TRUE;
     char dir_divider[2] = "/";
     fd_set readfds;
@@ -147,7 +144,7 @@ static void options_process_server(struct options_server *opts)
                    "Socket fd : %d\n"
                    "ip : %s\n"
                    "port : %d\n", new_socket, inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
-
+            opts->origin_directory = malloc(sizeof(char) * 100);
             strcpy(opts->origin_directory, opts->directory);
             strcat(opts->directory, dir_divider);
             strcat(opts->directory, inet_ntoa(client_address.sin_addr));
@@ -167,7 +164,10 @@ static void options_process_server(struct options_server *opts)
             printf("origin directory = %s\n", opts->origin_directory);
             download_file(opts);
             save_file(opts);
-            free(opts->directory);
+            strcpy(opts->directory, opts->origin_directory);
+            if (strcmp(opts->origin_directory, ".") == 0) {
+                strcpy(opts->origin_directory, "..");
+            }
             chdir(opts->origin_directory);
             free(opts->origin_directory);
         }
