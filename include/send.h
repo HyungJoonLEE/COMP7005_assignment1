@@ -5,5 +5,5 @@
 #include <stddef.h>
 #include "client.h"
 
-void send_file(struct options *opts, size_t count);
+void send_file(struct options *opts);
 #endif //ASSIGNMENT1_SEND_H

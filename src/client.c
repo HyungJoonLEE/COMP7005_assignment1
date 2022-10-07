@@ -18,12 +18,10 @@
 int main(int argc, char *argv[])
 {
     struct options opts;
-    char text_file_count[3];
     options_init(&opts);
     parse_arguments(argc, argv, &opts);
     options_process(&opts);
-//    copy(opts.fd_in, opts.server_socket, BUF_SIZE);
-    send_file(&opts, BUF_SIZE);
+    send_file(&opts);
     cleanup(&opts);
     return EXIT_SUCCESS;
 }

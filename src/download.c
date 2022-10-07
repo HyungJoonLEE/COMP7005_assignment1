@@ -6,14 +6,11 @@
 
 void download_file(struct options_server *opts) {
 
-    ssize_t nbyte0;
-    ssize_t nbyte;
-    ssize_t nbyte2;
-    ssize_t nbyte3;
+    ssize_t received_bytes;
     char received_file_count[BUF_SIZE];
-    char received_content[BUF_SIZE];
-    char received_content2[BUF_SIZE];
-    char received_content3[BUF_SIZE];
+    char received_file_name[BUF_SIZE];
+    char received_file_size[BUF_SIZE];
+    char received_file_text[BUF_SIZE];
     FILE *file = NULL;
     char buffer[256];
     ssize_t file_size = 0;
@@ -38,11 +35,11 @@ void download_file(struct options_server *opts) {
     while (count < file_count) {
         printf("=== File %d ===\n", count);
         while (TRUE) {
-            nbyte = read(opts->active_sd, received_content, sizeof(received_content));
+            read(opts->active_sd, received_file_name, sizeof(received_file_name));
 //            printf("1 = %s\n", received_content);
-            ptr = strtok(received_content, "\n");
+            ptr = strtok(received_file_name, "\n");
             if (strstr(ptr, ".txt") != NULL) {
-                strcpy(opts->file_name, received_content);
+                strcpy(opts->file_name, received_file_name);
                 printf("FILE NAME = %s\n", opts->file_name);
             }
             write(opts->active_sd, confirm, 8);
@@ -50,8 +47,8 @@ void download_file(struct options_server *opts) {
         }
 
         while (TRUE) {
-            nbyte2 = read(opts->active_sd, received_content2, sizeof(received_content2));
-            file_size = strtol(received_content2, NULL, 10);
+            read(opts->active_sd, received_file_size, sizeof(received_file_size));
+            file_size = strtol(received_file_size, NULL, 10);
             printf("FILE SIZE = %d\n", (int) file_size);
             write(opts->active_sd, confirm, 8);
             break;
@@ -59,11 +56,11 @@ void download_file(struct options_server *opts) {
 
         file = fopen(opts->file_name, "wb");
         while (TRUE) {
-            nbyte3 = read(opts->active_sd, received_content3, sizeof(received_content3));
-//            printf("READ - %ld bytes\n", nbyte3);
-//            printf("%s", received_content3);
-            fwrite(received_content3, sizeof(char), (unsigned long) nbyte3, file);
-            downloaded_size += nbyte3;
+            received_bytes = read(opts->active_sd, received_file_text, sizeof(received_file_text));
+//            printf("READ - %ld bytes\n", received_bytes);
+//            printf("%s", received_file_text);
+            fwrite(received_file_text, sizeof(char), (unsigned long) received_bytes, file);
+            downloaded_size += received_bytes;
             if (downloaded_size == file_size) {
                 write(opts->active_sd, confirm, 8);
                 break;
