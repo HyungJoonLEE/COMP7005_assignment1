@@ -75,6 +75,7 @@ static void options_process_server(struct options_server *opts)
     char message[27] = "You are connected to server";
     message[27] = '\0';
 
+
     struct sockaddr_in server_address;
     struct sockaddr_in client_address;
     socklen_t client_address_size;
@@ -83,6 +84,7 @@ static void options_process_server(struct options_server *opts)
     fd_set readfds;
     int max_sd, sd, activity, new_socket, valread;
     char buffer[1024];
+    ssize_t received_bytes = 0;
 
     for (int i = 0; i < BACKLOG; i++) {
         opts->client_socket[i] = 0;
@@ -162,8 +164,11 @@ static void options_process_server(struct options_server *opts)
                 }
             }
             printf("origin directory = %s\n", opts->origin_directory);
+
             download_file(opts);
-            save_file(opts);
+
+
+//            save_file(opts);
             strcpy(opts->directory, opts->origin_directory);
             if (strcmp(opts->origin_directory, ".") == 0) {
                 strcpy(opts->origin_directory, "..");

@@ -93,7 +93,7 @@ static void parse_arguments(int argc, char *argv[], struct options *opts)
 
 static void options_process(struct options *opts) {
     ssize_t server_connection_test_fd;
-    char message[27];
+    char message[28];
     message[27] = '\0';
     if(opts->file_name)
     {
