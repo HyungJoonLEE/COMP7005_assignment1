@@ -18,7 +18,7 @@ void send_file(struct options *opts) {
     if (server_confirm == -1) {
         printf("server didn't get file count\n");
     }
-    printf("FILE COUNT: %s\n", confirm);
+    printf("SERVER GOT [ FILE COUNT ]: %s\n", confirm);
 
 
     // Start to send file(s)
@@ -35,7 +35,7 @@ void send_file(struct options *opts) {
         if (server_confirm == -1) {
             printf("server didn't get file name\n");
         }
-        printf("FILE NAME: %s\n", confirm);
+        printf("SERVER GOT [ FILE NAME ]: %s\n", confirm);
 
 
         // Send server - file size of <filename>.txt
@@ -45,14 +45,14 @@ void send_file(struct options *opts) {
         fseek(file, 0, SEEK_SET);
 
         sprintf(file_size_string, "%d", file_size);
-        printf("FILE SIZE = %s\n", file_size_string);
+//        printf("FILE SIZE = %s\n", file_size_string);
         write(opts->server_socket, file_size_string, strlen(file_size_string));
         write(opts->server_socket, "\n\0", 2);
         server_confirm = read(opts->server_socket, confirm, sizeof(confirm));
         if (server_confirm == -1) {
             printf("server didn't get file size\n");
         }
-        printf("FILE SIZE: %s\n", confirm);
+        printf("SERVER GOT [ FILE SIZE ]: %s\n", confirm);
 
 
         // Send server - read <filename>.txt with 256 bytes and send buffer
@@ -66,7 +66,7 @@ void send_file(struct options *opts) {
                     printf("server didn't get file content\n");
                 }
                 if (strcmp(confirm, "CONFIRM") == 0) {
-                    printf("FILE %d RECEIVED : %s\n", i + 1, confirm);
+                    printf("SERVER RECEIVED [ %s ] : %s\n", opts->file_arr[i], confirm);
                     break;
                 }
             }

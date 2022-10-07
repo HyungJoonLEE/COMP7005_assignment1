@@ -33,7 +33,7 @@ void download_file(struct options_server *opts) {
 
 
     while (count < file_count) {
-        printf("=== File %d ===\n", count);
+        printf("=== File %d ===\n", count + 1);
         while (TRUE) {
             read(opts->active_sd, received_file_name, sizeof(received_file_name));
 //            printf("1 = %s\n", received_content);
