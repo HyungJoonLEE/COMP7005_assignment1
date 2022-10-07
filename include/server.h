@@ -25,9 +25,7 @@ struct options_server
     char* origin_directory;
     int server_socket;
     int client_socket[5];
-    char* file_arr[50];
     char file_name[20];
-    int file_count;
     int active_sd;
 };
 

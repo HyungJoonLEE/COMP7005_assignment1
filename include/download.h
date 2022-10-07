@@ -20,7 +20,6 @@
 
 int mkdirs(const char *path, mode_t mode);
 void download_file(struct options_server *opts);
-void save_file(struct options_server *opts);
-void remove_file(char* directory);
+
 
 #endif //ASSIGNMENT1_DOWNLOAD_H
