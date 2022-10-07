@@ -79,7 +79,8 @@ static void parse_arguments(int argc, char *argv[], struct options *opts)
         }
         else {
             while (argv[optind + i] != NULL){
-                opts->file_arr[i] = argv[optind + i];
+                opts->file_arr[i] = malloc(sizeof(char) * 20);
+                strcpy(opts->file_arr[i],  argv[optind + i]);
                 i++;
             }
         }
@@ -145,6 +146,9 @@ static void cleanup(const struct options *opts)
     if(opts->ip_out)
     {
         close(opts->fd_out);
+    }
+    for (int i = 0; i < opts->file_count; i++) {
+        free(opts->file_arr[i]);
     }
 }
 
