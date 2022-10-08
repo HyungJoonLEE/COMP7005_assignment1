@@ -12,7 +12,6 @@ void download_file(struct options_server *opts) {
     char received_file_size[BUF_SIZE];
     char received_file_text[BUF_SIZE];
     FILE *file = NULL;
-    char buffer[256];
     ssize_t file_size = 0;
     ssize_t downloaded_size = 0;
     int file_count = 0;
@@ -22,6 +21,8 @@ void download_file(struct options_server *opts) {
     char complete[9];
     complete[8] = '\0';
     int count = 0;
+    char* ptr;
+    char file_size_string[10];
 
     while (TRUE) {
         read(opts->active_sd, received_file_count, sizeof(received_file_count));
@@ -37,9 +38,11 @@ void download_file(struct options_server *opts) {
             read(opts->active_sd, received_file_name, sizeof(received_file_name));
 //            printf("1 = %s\n", received_file_name);
             if (strstr(received_file_name, ".txt") != NULL) {
-                strncpy(opts->file_name, received_file_name, strlen(received_file_name) - 1);
-                strcat(opts->file_name, "\0");
+                ptr = strtok(received_file_name, ".txt");
+                strncpy(opts->file_name, ptr, strlen(ptr));
+                strcat(opts->file_name, ".txt");
                 printf("FILE NAME = %s\n", opts->file_name);
+                ptr = NULL;
             }
             write(opts->active_sd, confirm, 8);
             break;
@@ -49,15 +52,21 @@ void download_file(struct options_server *opts) {
         while (TRUE) {
             read(opts->active_sd, received_file_size, sizeof(received_file_size));
             strcat(received_file_size, "\0");
-            printf("2 = %s\n", received_file_size);
-            file_size = strtol(received_file_size, NULL, 10);
+            memset(file_size_string, 0, sizeof(char) * 10);
+            for (int i = 0; i < (int)strlen(received_file_size); i++) {
+                if (received_file_size[i] >= 48 && received_file_size[i] <= 57) {
+                    file_size_string[i] = received_file_size[i];
+                }
+                else continue;
+            }
+            strcat(file_size_string, "\0");
+            file_size = strtol(file_size_string, NULL, 10);
             printf("FILE SIZE = %d\n", (int) file_size);
             write(opts->active_sd, confirm, 8);
             break;
         }
 
         file = fopen(opts->file_name, "wb");
-        printf("file name %s\n",opts->file_name);
         while (received_bytes > 0) {
             received_bytes = read(opts->active_sd, received_file_text, sizeof(received_file_text));
 //            printf("READ - %ld bytes\n", received_bytes);
@@ -73,6 +82,7 @@ void download_file(struct options_server *opts) {
         downloaded_size = 0;
         file_size = 0;
         count++;
+        memset(opts->file_name, 0, sizeof(char) * 20);
     }
 }
 
