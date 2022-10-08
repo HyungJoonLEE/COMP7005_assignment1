@@ -1,277 +1,199 @@
-
-#include "server.h"
-#include "common.h"
+#include "conversion.h"
+#include "copy.h"
 #include "error.h"
+#include "server.h"
+#include "download.h"
+#include "send.h"
+#include "common.h"
+//#include <linux/if.h>
+#include <sys/time.h>
+#include <net/if.h>
 
 
-int main(int argc, char *argv[]) {
-    dc_posix_tracer tracer;
-    dc_error_reporter reporter;
-    struct dc_posix_env env;
-    struct dc_error err;
-    struct dc_application_info *info;
-    int ret_val;
+#define BUF_SIZE 1024
+#define BACKLOG 5
 
-    tracer = NULL;
-    dc_posix_env_init(&env, tracer);
-    reporter = dc_error_default_error_reporter;
-    dc_error_init(&err, reporter);
-    info = dc_application_info_create(&env, &err, "COMP7005 ASSIGN1");
-    ret_val = dc_application_run(&env, &err, info, create_settings, destroy_settings, run, dc_default_create_lifecycle,
-                                 dc_default_destroy_lifecycle,
-                                 "~/.dcecho.conf",
-                                 argc, argv);
-    dc_application_info_destroy(&env, &info);
-    dc_error_reset(&err);
+int main(int argc, char *argv[])
+{
+    struct options_server opts;
 
-    return ret_val;
+    options_init_server(&opts);
+    parse_arguments_server(argc, argv, &opts);
+    options_process_server(&opts);
+//    copy(opts.client_socket, opts.fd_out, BUF_SIZE);
+    cleanup_server(&opts);
+    return EXIT_SUCCESS;
 }
 
-static struct dc_application_settings *create_settings(const struct dc_posix_env *env, struct dc_error *err) {
-    static const uint16_t default_port = DEFAULT_PORT;
-    static const char* default_directory = DEFAULT_DIRECTORY;
-    struct application_settings *settings;
 
-    settings = dc_malloc(env, err, sizeof(struct application_settings));
-
-    if (settings == NULL) {
-        return NULL;
-    }
-
-    settings->opts.parent.config_path = dc_setting_path_create(env, err);
-    settings->port = dc_setting_uint16_create(env, err);
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeclaration-after-statement"
-    struct options opts[] =
-            {
-                    {(struct dc_setting *) settings->opts.parent.config_path, dc_options_set_path,   "config", required_argument, 'c', "CONFIG", dc_string_from_string, NULL,   dc_string_from_config, NULL},
-                    {(struct dc_setting *) settings->directory,                    dc_options_set_string, "directory",   required_argument, 'd', "DIRECTORY",   dc_string_from_string, "directory", dc_string_from_config, default_directory},
-                    {(struct dc_setting *) settings->port,                    dc_options_set_uint16, "port",   required_argument, 'p', "PORT",   dc_uint16_from_string, "port", dc_uint16_from_config, &default_port},
-            };
-#pragma GCC diagnostic pop
-
-    // note the trick here - we use calloc and add 1 to ensure the last line is all 0/NULL
-    settings->opts.opts = dc_calloc(env, err, (sizeof(opts) / sizeof(struct options)) + 1, sizeof(struct options));
-    dc_memcpy(env, settings->opts.opts, opts, sizeof(opts));
-    settings->opts.flags = "c:d:p:";
-    settings->opts.env_prefix = "ASSIGN1_";
-
-    return (struct dc_application_settings *) settings;
+static void options_init_server(struct options_server *opts) {
+    memset(opts, 0, sizeof(struct options_server));
+    opts->port_in = DEFAULT_PORT;
+    strcpy(opts->directory, DEFAULT_DIRECTORY);
+    printf("current directory: %s\n", opts->directory);
 }
 
-static int destroy_settings(const struct dc_posix_env *env, __attribute__ ((unused)) struct dc_error *err,
-                            struct dc_application_settings **psettings) {
-    struct application_settings *app_settings;
 
-    app_settings = (struct application_settings *) *psettings;
-    dc_setting_string_destroy(env, &app_settings->directory);
-    dc_setting_uint16_destroy(env, &app_settings->port);
-    dc_free(env, app_settings->opts.opts, app_settings->opts.opts_size);
-    dc_free(env, app_settings, sizeof(struct application_settings));
+static void parse_arguments_server(int argc, char *argv[], struct options_server *opts)
+{
+    int c;
 
-    if (env->null_free)
+    while((c = getopt(argc, argv, ":d:p:")) != -1)   // NOLINT(concurrency-mt-unsafe)
     {
-        *psettings = NULL;
-    }
-
-    return 0;
-}
-
-static int run(const struct dc_posix_env *env, __attribute__ ((unused)) struct dc_error *err,
-               struct dc_application_settings *settings) {
-    struct application_settings *app_settings;
-    in_port_t port;
-    int ret_val;
-    int len, rc, on = 1;
-    int listen_sd = -1, new_sd = -1;
-    int end_server = FALSE, compress_array = FALSE;
-    int close_conn;
-    struct sockaddr_in6 addr;
-    int timeout;
-    char buffer[MSG_MAX_LEN];
-    struct pollfd fds[SOMAXCONN];
-    int nfds = 1, current_size = 0, i, j;
-    uint8_t *res_packet;
-    size_t size_buf;
-    app_settings = (struct application_settings *) settings;
-    port = dc_setting_uint16_get(env, app_settings->port);
-    ret_val = 0;
-
-
-    /* Create an AF_INET stream socket to receive incoming      */
-    /* connections on                                            */
-    listen_sd = socket(AF_INET, SOCK_STREAM, 0);
-    if (listen_sd < 0) {
-        perror("socket() failed");
-        exit(-1);
-    }
-
-    /* Allow socket descriptor to be reuseable                   */
-    rc = setsockopt(listen_sd, SOL_SOCKET, SO_REUSEADDR,
-                    (char *) &on, sizeof(on));
-    if (rc < 0) {
-        perror("setsockopt() failed");
-        close(listen_sd);
-        exit(-1);
-    }
-
-    rc = ioctl(listen_sd, FIONBIO, (char *) &on);
-    if (rc < 0) {
-        perror("ioctl() failed");
-        close(listen_sd);
-        exit(-1);
-    }
-
-    memset(&addr, 0, sizeof(addr));
-    addr.sin6_family = AF_INET;
-    memcpy(&addr.sin6_addr, &in6addr_any, sizeof(in6addr_any));
-    addr.sin6_port = htons(port);
-    rc = bind(listen_sd,
-              (struct sockaddr *) &addr, sizeof(addr));
-    if (rc < 0) {
-        perror("bind() failed");
-        close(listen_sd);
-        exit(-1);
-    }
-
-    rc = listen(listen_sd, SOMAXCONN);
-    if (rc < 0) {
-        perror("listen() failed");
-        close(listen_sd);
-        exit(-1);
-    }
-
-    memset(fds, 0, sizeof(fds));
-
-    fds[0].fd = listen_sd;
-    fds[0].events = POLLIN;
-
-    /* Set to -1 to wait forever until an event occurs */
-    timeout = (3 * 60 * 1000);
-
-    /* Loop waiting for incoming connects or for incoming data   */
-    /* on any of the connected sockets.                          */
-    do {
-        /* Call poll() and wait 3 minutes for it to complete.      */
-        printf("Waiting on poll()...\n");
-        rc = poll(fds, nfds, timeout);
-
-        /* Check to see if the poll call failed.                   */
-        if (rc < 0) {
-            perror("  poll() failed");
-            break;
-        }
-
-        /* Check to see if the time-out expired.          */
-        if (rc == 0) {
-            printf("  poll() timed out.  End program.\n");
-            break;
-        }
-
-        /* One or more descriptors are readable.  Need to          */
-        /* determine which ones they are.                          */
-        current_size = nfds;
-        for (i = 0; i < current_size; i++) {
-            /* Loop through to find the descriptors that returned    */
-            /* POLLIN and determine whether it's the listening       */
-            /* or the active connection.                             */
-            if (fds[i].revents == 0)
-                continue;
-
-            /* If revents is not POLLIN, it's an unexpected result,  */
-            /* log and end the server.                               */
-            if (fds[i].revents != POLLIN) {
-                printf("  Error! revents = %d\n", fds[i].revents);
-                end_server = TRUE;
+        switch(c)
+        {
+            case 'd':
+            {
+                strcpy(opts->directory, optarg);
                 break;
             }
+            case 'p':
+            {
+                opts->port_in = parse_port(optarg, 10); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+                break;
+            }
+            case ':':
+            {
+                fatal_message(__FILE__, __func__ , __LINE__, "\"Option requires an operand\"", 5); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+                break;
+            }
+            case '?':
+            {
+                fatal_message(__FILE__, __func__ , __LINE__, "Unknown", 6); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+            }
+            default:
+            {
+                assert("should not get here");
+            };
+        }
+    }
+}
 
-            if (fds[i].fd == listen_sd) {
-                /* Listening descriptor is readable.                   */
-                printf("  Listening socket is readable\n");
 
-                /* Accept all incoming connections that are            */
-                /* queued up on the listening socket before we         */
-                /* loop back and call poll again.                      */
-                do {
-                    new_sd = accept(listen_sd, NULL, NULL);
-                    if (new_sd < 0) {
-                        if (errno != EWOULDBLOCK) {
-                            perror("  accept() failed");
-                            end_server = TRUE;
-                        }
-                        break;
-                    }
+static void options_process_server(struct options_server *opts)
+{
+    char message[27] = "You are connected to server";
+    message[27] = '\0';
 
-                    printf("  New incoming connection - %d\n", new_sd);
 
-                    // ALL THE CLIENTS ARE HERE
-                    // Set the channel_id and stuff here
-                    fds[nfds].fd = new_sd;
-                    fds[nfds].events = POLLIN;
-                    nfds++;
-                    /* Loop back up and accept another incoming          */
-                    /* connection                                        */
-                } while (new_sd != -1);
-            } else {
-                printf("  Descriptor %d is readable\n", fds[i].fd);
-                close_conn = FALSE;
-                /* Receive all incoming data on this socket            */
-                /* before we loop back and call poll again.            */
+    struct sockaddr_in server_address;
+    struct sockaddr_in client_address;
+    socklen_t client_address_size;
+    int option = TRUE;
+    char dir_divider[2] = "/";
+    fd_set readfds;
+    int max_sd, sd, activity, new_socket, valread;
+    char buffer[1024];
+    ssize_t received_bytes = 0;
 
-                do {
-                    /* Receive data on this connection until the         */
-                    /* recv fails with EWOULDBLOCK. If any other         */
-                    /* failure occurs, we will close the                 */
-                    /* connection.                                       */
-                    rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
-                    if (rc < 0) {
-                        if (errno != EWOULDBLOCK) {
-                            perror("  recv() failed");
-                            close_conn = TRUE;
-                        }
-                        break;
-                    }
+    for (int i = 0; i < BACKLOG; i++) {
+        opts->client_socket[i] = 0;
+    }
 
-                    fwrite(buffer, sizeof(char), rc, )
-                    /* Check to see if the connection has been           */
-                    /* closed by the client                              */
-                    if (rc == 0) {
-                        printf("  Connection closed\n");
-                        close_conn = TRUE;
-                        break;
-                    }
 
-                    /* Data was received                                 */
-                    len = rc;
-                } while(FALSE);
+    opts->server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if(opts->server_socket == -1) {
+            printf( "socket() ERROR\n");
+            exit(1);
+    }
 
-                if (close_conn) {
-                    close(fds[i].fd);
-                    fds[i].fd = -1;
-                    compress_array = TRUE;
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(opts->port_in);
+    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    if(server_address.sin_addr.s_addr ==  (in_addr_t) -1) {
+        fatal_errno(__FILE__, __func__ , __LINE__, errno, 2);
+    }
+
+    option = 1;
+    setsockopt(opts->server_socket, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
+
+
+    if (bind(opts->server_socket, (struct sockaddr *)&server_address, sizeof(struct sockaddr_in)) == -1) {
+        printf("bind() ERROR\n");
+        exit(1);
+    }
+
+
+    if (listen(opts->server_socket, BACKLOG) == -1) {
+        printf("listen() ERROR\n");
+        exit(1);
+    }
+
+    client_address_size = sizeof(client_address);
+
+    while (TRUE) {
+        FD_ZERO((&readfds));
+        FD_SET(opts->server_socket, &readfds);
+        max_sd = opts->server_socket;
+
+        for (int i = 0; i < BACKLOG; i++) {
+            sd = opts->client_socket[i];
+            if (sd > 0) FD_SET(sd, &readfds);
+            if (sd > max_sd) max_sd = sd;
+        }
+        activity = select(max_sd + 1, &readfds, NULL, NULL, NULL);
+        if (activity < 0) printf("select error\n");
+
+        if (FD_ISSET(opts->server_socket, &readfds)) {
+            if ((new_socket = accept(opts->server_socket, (struct sockaddr *) &client_address,
+                                     &client_address_size)) < 0) {
+                perror("accept: ");
+                exit(EXIT_FAILURE);
+            }
+
+            printf("====== [New Client Connect] ======\n"
+                   "Socket fd : %d\n"
+                   "ip : %s\n"
+                   "port : %d\n", new_socket, inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
+            opts->origin_directory = malloc(sizeof(char) * 100);
+            strcpy(opts->origin_directory, opts->directory);
+            strcat(opts->directory, dir_divider);
+            strcat(opts->directory, inet_ntoa(client_address.sin_addr));
+            mkdirs(opts->directory, 0776);
+            if (chdir(opts->directory) == 0) printf("%s => %s\n", opts->origin_directory, opts->directory);
+
+            if (send(new_socket, message, strlen(message), 0) != strlen(message)) perror("send : ");
+
+            for (int i = 0; i < 5; i++) {
+                if (opts->client_socket[i] == 0) {
+                    opts->client_socket[i] = new_socket;
+                    opts->active_sd = new_socket;
+                    printf("Successfully added in client socket array: [%d]\n", i);
+                    break;
                 }
-            }  /* End of existing connection is readable             */
-        } /* End of loop through pollable descriptors              */
+            }
+            printf("origin directory = %s\n", opts->origin_directory);
 
-        if (compress_array) {
-            compress_array = FALSE;
-            for (i = 0; i < nfds; i++) {
-                if (fds[i].fd == -1) {
-                    for (j = i; j < nfds; j++) {
-                        fds[j].fd = fds[j + 1].fd;
-                    }
-                    i--;
-                    nfds--;
+            download_file(opts);
+
+
+//            save_file(opts);
+            strcpy(opts->directory, opts->origin_directory);
+            if (strcmp(opts->origin_directory, ".") == 0) {
+                strcpy(opts->origin_directory, "..");
+            }
+            chdir(opts->origin_directory);
+            free(opts->origin_directory);
+        }
+
+        for (int i = 0; i < 5; i++) {
+            sd = opts->client_socket[i];
+            if (FD_ISSET(sd, &readfds)) {
+                if ((valread = read(sd, buffer, 1024)) == 0) {
+                    getpeername(sd, (struct sockaddr *) &client_address, &client_address_size);
+                    printf("DISCONNECTED [ ip : %s ]\n", inet_ntoa(client_address.sin_addr));
+                    close(sd);
+                    opts->client_socket[i] = 0;
+                } else {
+                    buffer[valread] = '\0';
                 }
             }
         }
-    } while (end_server == FALSE); /* End of serving running.    */
-
-    /* Clean up all of the sockets that are open                 */
-    for (i = 0; i < nfds; i++) {
-        if (fds[i].fd >= 0) close(fds[i].fd);
     }
-    return ret_val;
+}
+
+
+static void cleanup_server(const struct options_server *opts) {
+    close(opts->server_socket);
 }

@@ -1,26 +1,43 @@
-//
-// Created by Hyung Joon Lee on 2022-09-28.
-//
 #ifndef ASSIGNMENT1_CLIENT_H
 #define ASSIGNMENT1_CLIENT_H
 
+#include "common.h"
+#include <arpa/inet.h>
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <time.h>
+#include <dirent.h>
 
-#include <dc_application/options.h>
+#define BUF_SIZE 1024
 
-struct application_settings
+
+
+struct options
 {
-    struct dc_opt_settings opts;
-    struct dc_setting_string *hostname;
-    struct dc_setting_uint16 *port;
-    struct dc_setting_string *filename
+    char *file_name;
+    char *ip_out;
+    in_port_t port_out;
+    int fd_in;
+    int fd_out;
+    int server_socket;
+    char* file_arr[50];
+    int file_count;
 };
 
+typedef struct _finddata_t  FILE_SEARCH;
 
-static struct dc_application_settings *create_settings(const struct dc_posix_env *env, struct dc_error *err);
 
-static int
-destroy_settings(const struct dc_posix_env *env, struct dc_error *err, struct dc_application_settings **psettings);
+static void options_init(struct options *opts);
+static void parse_arguments(int argc, char *argv[], struct options *opts);
+static void options_process(struct options *opts);
+static void cleanup(const struct options *opts);
+void get_file_list(struct options *opts);
 
-static int run(const struct dc_posix_env *env, struct dc_error *err, struct dc_application_settings *settings);
 
 #endif //ASSIGNMENT1_CLIENT_H

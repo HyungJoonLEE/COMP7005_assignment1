@@ -16,7 +16,7 @@ include_directories(${CGREEN_PUBLIC_INCLUDE_DIRS} ${PROJECT_BINARY_DIR})
 add_executable(template2_test
         ${TEST_SOURCE_LIST} ${TEST_HEADER_LIST} ${COMMON_SOURCE_LIST} ${PROG1_SOURCE_LIST} ${PROG2_SOURCE_LIST} ${HEADER_LIST})
 
-target_compile_features(template2_test PRIVATE c_std_11)
+target_compile_features(template2_test PRIVATE c_std_17)
 target_compile_options(template2_test PRIVATE -g)
 target_compile_options(template2_test PRIVATE -fstack-protector-all -ftrapv)
 target_compile_options(template2_test PRIVATE -Wpedantic -Wall -Wextra)

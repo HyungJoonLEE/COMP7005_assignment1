@@ -1,6 +1,6 @@
 # https://gitlab.com/CLIUtils/modern-cmake/-/blob/master/examples/extended-project/CMakeLists.txt
 
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.22)
 
 # Project name and a few useful settings. Other commands can pick up the results
 project(assignment1
@@ -12,18 +12,27 @@ set(HEADER_LIST
         "${assignment1_SOURCE_DIR}/include/common.h"
         "${assignment1_SOURCE_DIR}/include/server.h"
         "${assignment1_SOURCE_DIR}/include/error.h"
+        "${assignment1_SOURCE_DIR}/include/conversion.h"
+        "${assignment1_SOURCE_DIR}/include/copy.h"
+        "${assignment1_SOURCE_DIR}/include/download.h"
         "${assignment1_SOURCE_DIR}/include/client.h"
+        "${assignment1_SOURCE_DIR}/include/send.h"
+
         )
 
 set(COMMON_SOURCE_LIST
         "${assignment1_SOURCE_DIR}/src/common.c"
         "${assignment1_SOURCE_DIR}/src/error.c"
+        "${assignment1_SOURCE_DIR}/src/conversion.c"
+        "${assignment1_SOURCE_DIR}/src/copy.c"
         )
 
 set(SERVER_SOURCE_LIST
+        "${assignment1_SOURCE_DIR}/src/download.c"
         )
 
 set(CLIENT_SOURCE_LIST
+        "${assignment1_SOURCE_DIR}/src/send.c"
         )
 
 set(SERVER_MAIN_SOURCE
