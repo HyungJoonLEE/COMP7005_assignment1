@@ -6,7 +6,7 @@
 
 void download_file(struct options_server *opts) {
 
-    ssize_t received_bytes;
+    ssize_t received_bytes = 1;
     char received_file_count[BUF_SIZE];
     char received_file_name[14];
     char received_file_size[BUF_SIZE];
@@ -36,7 +36,7 @@ void download_file(struct options_server *opts) {
         printf("=== File %d ===\n", count + 1);
         while (TRUE) {
             read(opts->active_sd, received_file_name, sizeof(received_file_name));
-//            printf("1 = %s\n", received_file_name);
+            printf("1 = %s\n", received_file_name);
             if (strstr(received_file_name, ".txt") != NULL) {
                 ptr = strtok(received_file_name, ".txt");
                 strncpy(opts->file_name, ptr, strlen(ptr));
@@ -70,7 +70,8 @@ void download_file(struct options_server *opts) {
         while (received_bytes > 0) {
             received_bytes = read(opts->active_sd, received_file_text, sizeof(received_file_text));
 //            printf("READ - %ld bytes\n", received_bytes);
-//            printf("%s", received_file_text);
+            //printf("%s\n", received_file_text);
+            received_file_text[received_bytes] = '\0';
             fwrite(received_file_text, sizeof(char), (unsigned long) received_bytes, file);
             downloaded_size += received_bytes;
             if (downloaded_size == file_size) {

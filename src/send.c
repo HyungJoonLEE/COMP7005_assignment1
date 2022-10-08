@@ -35,7 +35,7 @@ void send_file(struct options *opts) {
         strcat(file_name, "\n");
         // Send server - <filename>.txt
         write(opts->server_socket, opts->file_arr[i], strlen(opts->file_arr[i]));
-//        write(opts->server_socket, "\n", 1);
+//    	write(opts->server_socket, "\n", 1);
         server_confirm = read(opts->server_socket, confirm, sizeof(confirm));
         if (server_confirm == -1) {
             printf("server didn't get file name\n");
@@ -52,7 +52,7 @@ void send_file(struct options *opts) {
         fseek(file, 0, SEEK_SET);
 
         sprintf(file_size_string, "%d", file_size);
-//        printf("FILE SIZE = %s\n", file_size_string);
+//    	printf("FILE SIZE = %s\n", file_size_string);
         strcat(file_size_string, "\n");
         write(opts->server_socket, file_size_string, strlen(file_size_string));
         server_confirm = read(opts->server_socket, confirm, sizeof(confirm));
