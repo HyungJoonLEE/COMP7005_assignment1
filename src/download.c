@@ -8,7 +8,7 @@ void download_file(struct options_server *opts) {
 
     ssize_t received_bytes;
     char received_file_count[BUF_SIZE];
-    char received_file_name[BUF_SIZE];
+    char received_file_name[14];
     char received_file_size[BUF_SIZE];
     char received_file_text[BUF_SIZE];
     FILE *file = NULL;
@@ -21,33 +21,35 @@ void download_file(struct options_server *opts) {
     confirm[7] = '\0';
     char complete[9];
     complete[8] = '\0';
-    char *ptr;
     int count = 0;
 
     while (TRUE) {
         read(opts->active_sd, received_file_count, sizeof(received_file_count));
         file_count = (int)strtol(received_file_count, NULL, 10);
+        printf("file count = %d\n", file_count);
         write(opts->active_sd, confirm, 8);
         break;
     }
-
 
     while (count < file_count) {
         printf("=== File %d ===\n", count + 1);
         while (TRUE) {
             read(opts->active_sd, received_file_name, sizeof(received_file_name));
-//            printf("1 = %s\n", received_content);
-            ptr = strtok(received_file_name, "\n");
-            if (strstr(ptr, ".txt") != NULL) {
-                strcpy(opts->file_name, received_file_name);
+//            printf("1 = %s\n", received_file_name);
+            if (strstr(received_file_name, ".txt") != NULL) {
+                strncpy(opts->file_name, received_file_name, strlen(received_file_name) - 1);
+                strcat(opts->file_name, "\0");
                 printf("FILE NAME = %s\n", opts->file_name);
             }
             write(opts->active_sd, confirm, 8);
             break;
         }
 
+
         while (TRUE) {
             read(opts->active_sd, received_file_size, sizeof(received_file_size));
+            strcat(received_file_size, "\0");
+            printf("2 = %s\n", received_file_size);
             file_size = strtol(received_file_size, NULL, 10);
             printf("FILE SIZE = %d\n", (int) file_size);
             write(opts->active_sd, confirm, 8);
@@ -55,7 +57,8 @@ void download_file(struct options_server *opts) {
         }
 
         file = fopen(opts->file_name, "wb");
-        while (TRUE) {
+        printf("file name %s\n",opts->file_name);
+        while (received_bytes > 0) {
             received_bytes = read(opts->active_sd, received_file_text, sizeof(received_file_text));
 //            printf("READ - %ld bytes\n", received_bytes);
 //            printf("%s", received_file_text);
