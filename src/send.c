@@ -12,30 +12,37 @@ void send_file(struct options *opts) {
 
     // Send server - # of .txt files
     sprintf(file_count, "%d", opts->file_count);
+    strcat(file_count, "\n");
     write(opts->server_socket, file_count, strlen(file_count));
-    write(opts->server_socket, "\n\0", 2);
-    server_confirm = read(opts->server_socket, confirm, sizeof(confirm));
-    if (server_confirm == -1) {
-        printf("server didn't get file count\n");
+    while (TRUE) {
+        server_confirm = read(opts->server_socket, confirm, sizeof(confirm));
+        if (server_confirm == -1) {
+            printf("server didn't get file count\n");
+        }
+        printf("SERVER GOT [ FILE COUNT ]: %s\n", confirm);
+        break;
     }
-    printf("SERVER GOT [ FILE COUNT ]: %s\n", confirm);
 
 
     // Start to send file(s)
     for (int i = 0; i < opts->file_count; i++) {
         FILE *file;
-        int file_size, current_size = 0;
+        ssize_t file_size, current_size = 0;
         char file_size_string[10];
+        char file_name[20];
 
-
+        strcpy(file_name, opts->file_arr[i]);
+        strcat(file_name, "\n");
         // Send server - <filename>.txt
-        write(opts->server_socket, (char*)opts->file_arr[i], strlen(opts->file_arr[i]));
-        write(opts->server_socket, "\n\0", 2);
+        write(opts->server_socket, opts->file_arr[i], strlen(opts->file_arr[i]));
+//        write(opts->server_socket, "\n", 1);
         server_confirm = read(opts->server_socket, confirm, sizeof(confirm));
         if (server_confirm == -1) {
             printf("server didn't get file name\n");
         }
-        printf("SERVER GOT [ FILE NAME ]: %s\n", confirm);
+        else {
+            printf("SERVER GOT [ FILE NAME ]: %s\n", confirm);
+        }
 
 
         // Send server - file size of <filename>.txt
@@ -46,8 +53,8 @@ void send_file(struct options *opts) {
 
         sprintf(file_size_string, "%d", file_size);
 //        printf("FILE SIZE = %s\n", file_size_string);
+        strcat(file_size_string, "\n");
         write(opts->server_socket, file_size_string, strlen(file_size_string));
-        write(opts->server_socket, "\n\0", 2);
         server_confirm = read(opts->server_socket, confirm, sizeof(confirm));
         if (server_confirm == -1) {
             printf("server didn't get file size\n");
@@ -57,9 +64,9 @@ void send_file(struct options *opts) {
 
         // Send server - read <filename>.txt with 256 bytes and send buffer
         while(current_size != file_size) {
-            int fp_size = (int)fread(buf, 1, 256, file);
+            size_t fp_size = fread(buf, 1, 256, file);
             current_size += fp_size;
-            send(opts->server_socket, buf, (size_t)fp_size, 0);
+            write(opts->server_socket, buf, (size_t) fp_size);
             if (current_size == file_size) {
                 server_confirm = read(opts->server_socket, confirm, sizeof(confirm));
                 if (server_confirm == -1) {
