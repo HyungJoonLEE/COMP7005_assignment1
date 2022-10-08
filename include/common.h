@@ -21,9 +21,6 @@
 #define DEFAULT_PORT 4000
 #define TRUE 1
 #define FALSE 0
-#define MSG_MAX_LEN 1280
-#define BUFFER_LENGTH 1280
-#define DEFAULT_PORT 8000
 
 
 
