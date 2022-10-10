@@ -5,7 +5,6 @@
 #include "download.h"
 #include "send.h"
 #include "common.h"
-//#include <linux/if.h>
 #include <sys/time.h>
 #include <net/if.h>
 
@@ -20,7 +19,6 @@ int main(int argc, char *argv[])
     options_init_server(&opts);
     parse_arguments_server(argc, argv, &opts);
     options_process_server(&opts);
-//    copy(opts.client_socket, opts.fd_out, BUF_SIZE);
     cleanup_server(&opts);
     return EXIT_SUCCESS;
 }

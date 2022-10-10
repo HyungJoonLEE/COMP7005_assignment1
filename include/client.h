@@ -26,17 +26,54 @@ struct options
     int fd_in;
     int fd_out;
     int server_socket;
-    char* file_arr[50];
+    char* file_arr[200];
     int file_count;
 };
 
-typedef struct _finddata_t  FILE_SEARCH;
 
-
+/**
+ * Initialize default option for client
+ * STDIN, STDOUT and port number saved
+ *
+ * @param opts client struct settings
+ */
 static void options_init(struct options *opts);
+
+
+/**
+ * Parse input from user server IP, server port, client text files are included.
+ * Set the client option struct after parsing.
+ * If there is no input, it will use DEFAULT value.
+ *
+ * @param argc number of argument
+ * @param argv client's input
+ * @param opts client option struct settings
+ */
 static void parse_arguments(int argc, char *argv[], struct options *opts);
+
+
+/**
+ * Initialize connection with server.
+ * After successful connection, client will get message from server to confirm it is connected.
+ *
+ * @param opts client option struct settings
+ */
 static void options_process(struct options *opts);
+
+
+/**
+ * Free variables that were used for client option struct setting.
+ *
+ * @param opts client option struct settings
+ */
 static void cleanup(const struct options *opts);
+
+
+/**
+ * If client's input was *.txt, will loop client's current directory, get all text files, and store in array.
+ *
+ * @param opts client option struct settings
+ */
 void get_file_list(struct options *opts);
 
 

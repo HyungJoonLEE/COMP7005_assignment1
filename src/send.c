@@ -28,14 +28,13 @@ void send_file(struct options *opts) {
     for (int i = 0; i < opts->file_count; i++) {
         FILE *file;
         ssize_t file_size, current_size = 0;
-        char file_size_string[10];
-        char file_name[20];
+        char file_size_string[10] = {0, };
+        char file_name[20] = {0};
 
         strcpy(file_name, opts->file_arr[i]);
         strcat(file_name, "\n");
         // Send server - <filename>.txt
-        write(opts->server_socket, opts->file_arr[i], strlen(opts->file_arr[i]));
-//    	write(opts->server_socket, "\n", 1);
+        write(opts->server_socket, file_name, strlen(file_name));
         server_confirm = read(opts->server_socket, confirm, sizeof(confirm));
         if (server_confirm == -1) {
             printf("server didn't get file name\n");
